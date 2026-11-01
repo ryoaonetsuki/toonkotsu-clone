@@ -202,7 +202,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--red)}
     </section>
 
     <section id="sec-add" class="hidden">
-      <h2 id="addTitle">Add manga</h2><p class="muted">Add a title manually, or search MangaDex or MangaUpdates and import it. Cover images are uploaded directly — there is no image link field.</p>
+      <h2 id="addTitle">Add manga</h2><p class="muted">Add a title manually, or search MangaDex and import it. Cover images are uploaded directly — there is no image link field.</p>
       <div class="tabs">
         <button class="tab active" data-tab="manual">Manual add</button>
         <button class="tab" data-tab="jikan">Import</button>
@@ -242,7 +242,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--red)}
       <div id="tab-jikan" class="card hidden">
         <div class="tabs">
           <button class="tab active" data-source="mangadex">MangaDex</button>
-          <button class="tab" data-source="mangaupdates">MangaUpdates</button>
         </div>
         <div class="tabs">
           <button class="tab active" data-jmode="title">Search by title</button>
@@ -250,7 +249,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--red)}
         </div>
         <div class="row"><div><label id="jikanLabel">Title</label><input type="text" id="jikanQ"></div>
         <div style="flex:0 0 auto;align-self:flex-end"><button class="btn btn-light" id="jikanBtn">Search</button></div></div>
-        <div class="hint" id="jikanHint">Title search: try a manga name. ID search: try a MangaDex UUID or a MangaUpdates numeric ID.</div>
+        <div class="hint" id="jikanHint">Title search: try a manga name. ID search: try a MangaDex UUID.</div>
         <div id="jikanResults"></div>
       </div>
     </section>
@@ -872,12 +871,10 @@ function updateImportHint(){
   var hint = document.getElementById('jikanHint');
   if (jikanMode === 'title') {
     label.textContent = 'Title';
-    hint.textContent = importSource === 'mangadex' ? 'Title search via MangaDex. Try a manga name.'
-      : 'Title search via MangaUpdates. Try a manga name.';
+    hint.textContent = 'Title search via MangaDex. Try a manga name.';
   } else {
-    label.textContent = importSource === 'mangadex' ? 'MangaDex ID (UUID)' : 'MangaUpdates ID';
-    hint.textContent = importSource === 'mangadex' ? 'ID search via MangaDex. Paste the manga UUID, for example from a MangaDex manga URL.'
-      : 'ID search via MangaUpdates. Try a numeric MangaUpdates series ID.';
+    label.textContent = 'MangaDex ID (UUID)';
+    hint.textContent = 'ID search via MangaDex. Paste the manga UUID, for example from a MangaDex manga URL.';
   }
 }
 document.querySelectorAll('[data-source]').forEach(function(t){ t.addEventListener('click', function(){

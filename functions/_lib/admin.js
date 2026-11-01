@@ -348,14 +348,14 @@ export async function adminHandler(context) {
   }
 
   // ---- same-origin cover proxy (admin/mod only; search-result thumbnails) ----
-  // Client networks sometimes cannot reach uploads.mangadex.org or
-  // cdn.mangaupdates.com directly, so their thumbnails load from the site's
+  // Client networks sometimes cannot reach uploads.mangadex.org
+  // directly, so their thumbnails load from the site's
   // own origin instead. Host allowlist only — never an open proxy.
   if (parts[0] === "cover-proxy" && method === "GET") {
     if (!isAdmin && !isMod) return forbidden();
     let target;
     try { target = new URL(url.searchParams.get("u") || ""); } catch { return json({ error: "Invalid image URL." }, 400); }
-    if (target.protocol !== "https:" || (target.hostname !== "uploads.mangadex.org" && target.hostname !== "cdn.mangaupdates.com")) return json({ error: "Image host not allowed." }, 400);
+    if (target.protocol !== "https:" || (target.hostname !== "uploads.mangadex.org")) return json({ error: "Image host not allowed." }, 400);
     try {
       const up = await fetch(target.toString(), { signal: AbortSignal.timeout(20000), headers: { "User-Agent": "BongManga/1.0", Accept: "image/*" } });
       if (!up.ok) return json({ error: "Cover image could not be fetched." }, 502);
@@ -364,7 +364,7 @@ export async function adminHandler(context) {
     } catch { return json({ error: "Cover image could not be fetched." }, 502); }
   }
 
-  // ---- import search proxy (MangaDex / MangaUpdates, server-side) ----
+  // ---- import search proxy (MangaDex only, server-side) ----
   if (parts[0] === "import-search" && method === "GET") {
     if (!isAdmin && !isMod) return forbidden();
     const source = (url.searchParams.get("source") || "mangadex").toLowerCase();
@@ -422,61 +422,6 @@ export async function adminHandler(context) {
             alt_titles: alt, studio: "", start_year: a.year || null, source_id: it.id,
           };
         });
-        return json({ items });
-      }
-      if (source === "mangaupdates") {
-        const stripMd = (t) => String(t || "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\*\*/g, "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
-        const muStatus = (rec) => {
-          if (rec.completed === true) return "Complete";
-          const st = String(rec.status || "");
-          if (/complete/i.test(st)) return "Complete";
-          if (/hiatus/i.test(st)) return "Hiatus";
-          return "Ongoing";
-        };
-        const muMap = (rec) => {
-          const img = rec.image && rec.image.url ? (rec.image.url.thumb || rec.image.url.original || "") : "";
-          const imgPlain = rec.image && rec.image.url ? (rec.image.url.original || "") : "";
-          const authors = Array.isArray(rec.authors) ? rec.authors : [];
-          return {
-            title: rec.title || "",
-            cover: img, cover_display: img ? `/api/admin/cover-proxy?u=${encodeURIComponent(img)}` : "", cover_plain: imgPlain,
-            synopsis: stripMd(rec.description),
-            status: muStatus(rec),
-            type: rec.type || "Manga",
-            score: rec.bayesian_rating ? Math.round(Number(rec.bayesian_rating) * 10) / 10 : 0,
-            year: rec.year || 2020,
-            genres: (rec.genres || []).map((g) => (typeof g === "string" ? g : g.genre)).filter(Boolean),
-            author: authors.filter((a) => /author/i.test(a.type || "")).map((a) => a.name).filter(Boolean).join(", "),
-            artist: authors.filter((a) => /artist/i.test(a.type || "")).map((a) => a.name).filter(Boolean).join(", "),
-            content_rating: undefined,
-            alt_titles: {},
-            studio: "",
-            start_year: rec.year || null,
-            source_id: String(rec.series_id || ""),
-          };
-        };
-        if (mode === "id") {
-          if (!/^\d+$/.test(q)) return json({ error: "MangaUpdates ID must be a number." }, 400);
-          const { res, data } = await fetchJson(`https://api.mangaupdates.com/v1/series/${encodeURIComponent(q)}`);
-          if (!res.ok) {
-            if (res.status === 404) return json({ error: "No result found for this search." }, 502);
-            return json({ error: "MangaUpdates search failed (HTTP " + res.status + "). Please try again in a minute." }, 502);
-          }
-          return json({ items: [muMap(data)] });
-        }
-        let res, data;
-        for (let attempt = 0; attempt < 2; attempt++) {
-          const r = await fetchJson("https://api.mangaupdates.com/v1/series/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ search: q, page: 1, perpage: 8 }) });
-          res = r.res; data = r.data;
-          if (res.ok) break;
-          if ((res.status === 429 || res.status >= 500) && attempt === 0) await new Promise((w) => setTimeout(w, 1500));
-          else break;
-        }
-        if (!res.ok) {
-          if (res.status === 429) return json({ error: "MangaUpdates is limiting requests right now. Please wait a minute and try again." }, 429);
-          return json({ error: "MangaUpdates search failed (HTTP " + res.status + "). Please try again in a minute." }, 502);
-        }
-        const items = ((data && data.results) || []).map((r) => muMap(r.record || {})).filter((it) => it.title);
         return json({ items });
       }
       return json({ error: "Unknown import source." }, 400);

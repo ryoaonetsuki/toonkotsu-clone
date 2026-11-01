@@ -1,4 +1,4 @@
-import { json, getSessionUser, sessionCookies, getSettings, uploadAvatarDataUrl } from "../_lib/db.js";
+import { json, getSessionUser, sessionCookies, getSettings, uploadAvatarDataUrl, SESSION_MAX_AGE_SEC, persistRefreshedSession } from "../_lib/db.js";
 import { sbSelect, sbInsert, sbAuthTokenSignIn, sbAuthAdminCreateUser, resolveEmail } from "../_lib/supabase.js";
 
 // SPA auth protocol (the original app's own routes, old design):
@@ -14,6 +14,10 @@ import { sbSelect, sbInsert, sbAuthTokenSignIn, sbAuthAdminCreateUser, resolveEm
 function hasDb(env) { return Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_KEY); }
 
 export async function onRequest(context) {
+  return persistRefreshedSession(context.request, await handleRequest(context));
+}
+
+async function handleRequest(context) {
   const { env, request } = context;
   const parts = context.params.path || [];
   const method = request.method;
@@ -80,7 +84,7 @@ export async function onRequest(context) {
     if (profile.banned) return json({ error: "This account is banned." }, 403);
     const uname = profile.name || (profile.email ? profile.email.split("@")[0] : null);
     return json({ user: { id: profile.id, email: profile.email, name: uname, username: uname, displayName: uname, role: profile.role } }, 200, {
-      setCookies: sessionCookies(tokens.access_token, tokens.refresh_token, 3600),
+      setCookies: sessionCookies(tokens.access_token, tokens.refresh_token, SESSION_MAX_AGE_SEC),
     });
   }
 

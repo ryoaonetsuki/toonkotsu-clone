@@ -15,12 +15,17 @@ export function json(data, status = 200, extra = {}) {
 
 export { parseCookies };
 
+// Session lifetime, owner order 2026-11-01: stay logged in 3 days.
+// (The old 1-hour session cookie logged the admin out on every return visit.)
+export const SESSION_MAX_AGE_SEC = 3 * 86400;
+export const REFRESH_MAX_AGE_SEC = 7 * 86400;
+
 export function sessionCookies(accessToken, refreshToken, maxAgeSec) {
   const base = "Path=/; HttpOnly; SameSite=Lax; Secure";
   if (!accessToken) return ["tk_session=; " + base + "; Max-Age=0", "tk_refresh=; " + base + "; Max-Age=0"];
   return [
     "tk_session=" + accessToken + "; " + base + "; Max-Age=" + maxAgeSec,
-    "tk_refresh=" + (refreshToken || "") + "; " + base + "; Max-Age=" + (7 * 86400),
+    "tk_refresh=" + (refreshToken || "") + "; " + base + "; Max-Age=" + REFRESH_MAX_AGE_SEC,
   ];
 }
 
@@ -30,15 +35,17 @@ export async function getSessionUser(env, req) {
   if (!env.SUPABASE_URL) return null;
   const cookies = parseCookies(req);
   let access = cookies.tk_session;
-  if (!access) return null;
-  let authUser = await sbAuthGetUser(env, access).catch(() => null);
+  // No session cookie (e.g. it expired) is NOT an immediate logout: if a
+  // refresh token survives, rescue the session from it instead.
+  let authUser = access ? await sbAuthGetUser(env, access).catch(() => null) : null;
   if (!authUser && cookies.tk_refresh) {
     const refreshed = await sbAuthRefresh(env, cookies.tk_refresh).catch(() => null);
     if (refreshed && refreshed.access_token) {
       access = refreshed.access_token;
       authUser = await sbAuthGetUser(env, access).catch(() => null);
-      // Note: refreshed tokens cannot be set on this response from here;
-      // callers that need rotation use getSessionUserWithRotation instead.
+      // Persisted by the onRequest wrappers via persistRefreshedSession():
+      // Supabase rotates refresh tokens, so a refresh that is never written
+      // back as a cookie breaks the NEXT request's refresh.
       req.__refreshed = refreshed;
     }
   }
@@ -52,6 +59,23 @@ export async function getSessionUser(env, req) {
   } catch {
     return null;
   }
+}
+
+// Router-level rotation persistence, called once by each onRequest wrapper:
+// if getSessionUser refreshed tokens during this request, write them back as
+// cookies so the next request can use them. Never resurrects a session the
+// handler just cleared (logout responses are returned untouched).
+export function persistRefreshedSession(req, res) {
+  const refreshed = req && req.__refreshed;
+  if (!refreshed || !refreshed.access_token || !res || !res.headers) return res;
+  let existing = [];
+  if (typeof res.headers.getSetCookie === "function") existing = res.headers.getSetCookie();
+  else { const c = res.headers.get("set-cookie") || ""; if (c) existing = [c]; }
+  if (existing.some((c) => c.indexOf("tk_session=;") === 0)) return res;
+  const oldRefresh = parseCookies(req).tk_refresh || "";
+  const out = new Response(res.body, res);
+  for (const c of sessionCookies(refreshed.access_token, refreshed.refresh_token || oldRefresh, SESSION_MAX_AGE_SEC)) out.headers.append("Set-Cookie", c);
+  return out;
 }
 
 export function canWrite(user, ownerId) {

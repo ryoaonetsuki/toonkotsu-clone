@@ -1,4 +1,4 @@
-import { json, getSessionUser, canWrite, logAction, getSettings, seriesFromRow, slugify, chapterStats, sessionCookies, normalizeChapterLanguage, mangaTranslationLanguage } from "./db.js";
+import { json, getSessionUser, canWrite, logAction, getSettings, seriesFromRow, slugify, chapterStats, sessionCookies, normalizeChapterLanguage, mangaTranslationLanguage, SESSION_MAX_AGE_SEC } from "./db.js";
 import { sbSelect, sbInsert, sbUpdate, sbDelete, sbUpsert, sbCount, sbAuthTokenSignIn, sbAuthAdminCreateUser, resolveEmail } from "./supabase.js";
 
 function noDb() { return json({ error: "Database is not configured." }, 503); }
@@ -83,7 +83,7 @@ export async function adminHandler(context) {
     if (profile.banned) return json({ error: "This account is banned." }, 403);
     await logAction(env, profile.email, "Logged in");
     return json({ ok: true, user: { id: profile.id, email: profile.email, role: profile.role } }, 200, {
-      setCookies: sessionCookies(tokens.access_token, tokens.refresh_token, 3600),
+      setCookies: sessionCookies(tokens.access_token, tokens.refresh_token, SESSION_MAX_AGE_SEC),
     });
   }
   if (parts[0] === "register" && method === "POST") {

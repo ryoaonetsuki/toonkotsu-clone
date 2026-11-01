@@ -1,13 +1,17 @@
 import rankings0Fallback from "../_data/rankings-sfw0.js";
 import rankings1Fallback from "../_data/rankings-sfw1.js";
 import chaptersFallback from "../_data/chapters.js";
-import { json, dbChapter, dbMangaList, dbMangaByCode, localChapterPages, getSettings, getSessionUser, logAction, sessionCookies, uploadAvatarDataUrl } from "../_lib/db.js";
+import { json, dbChapter, dbMangaList, dbMangaByCode, localChapterPages, getSettings, getSessionUser, logAction, sessionCookies, uploadAvatarDataUrl, SESSION_MAX_AGE_SEC, persistRefreshedSession } from "../_lib/db.js";
 import { sbSelect, sbInsert, sbUpdate, sbDelete, sbUpsert, sbCount, sbAuthTokenSignIn, sbAuthAdminCreateUser, sbAuthAdminUpdateUser, resolveEmail } from "../_lib/supabase.js";
 import { adminHandler } from "../_lib/admin.js";
 
 function hasDb(env) { return Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_KEY); }
 
 export async function onRequest(context) {
+  return persistRefreshedSession(context.request, await handleRequest(context));
+}
+
+async function handleRequest(context) {
   const url = new URL(context.request.url);
   const parts = context.params.path || [];
   if (parts[0] === "admin") return adminHandler(context);
@@ -125,7 +129,7 @@ export async function onRequest(context) {
       if (!profile) return json({ error: "Invalid email or password." }, 401);
       if (profile.banned) return json({ error: "This account is banned." }, 403);
       try { await logAction(context.env, profile.email, "Logged in"); } catch {}
-      return json({ ok: true, user: await pubUser(profile) }, 200, { setCookies: sessionCookies(tokens.access_token, tokens.refresh_token, 3600) });
+      return json({ ok: true, user: await pubUser(profile) }, 200, { setCookies: sessionCookies(tokens.access_token, tokens.refresh_token, SESSION_MAX_AGE_SEC) });
     }
 
     if (parts[1] === "logout" && method === "POST") {

@@ -367,7 +367,7 @@ export async function adminHandler(context) {
   // ---- import search proxy (MangaDex + Kitsu, server-side) ----
   if (parts[0] === "import-search" && method === "GET") {
     if (!isAdmin && !isMod) return forbidden();
-    const source = (url.searchParams.get("source") || "mangadex").toLowerCase();
+    const source = (url.searchParams.get("source") || "kitsu").toLowerCase();
     const mode = (url.searchParams.get("mode") || "title").toLowerCase();
     const q = (url.searchParams.get("q") || "").trim();
     if (!q) return json({ error: "Search text is required." }, 400);

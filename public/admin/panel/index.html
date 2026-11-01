@@ -202,7 +202,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--red)}
     </section>
 
     <section id="sec-add" class="hidden">
-      <h2 id="addTitle">Add manga</h2><p class="muted">Add a title manually, or search MangaDex or Kitsu and import it. Cover images are uploaded directly — there is no image link field.</p>
+      <h2 id="addTitle">Add manga</h2><p class="muted">Add a title manually, or search Kitsu or MangaDex and import it. Cover images are uploaded directly — there is no image link field.</p>
       <div class="tabs">
         <button class="tab active" data-tab="manual">Manual add</button>
         <button class="tab" data-tab="jikan">Import</button>
@@ -241,16 +241,16 @@ input:focus,select:focus,textarea:focus{border-color:var(--red)}
       </form></div>
       <div id="tab-jikan" class="card hidden">
         <div class="tabs">
-          <button class="tab active" data-source="mangadex">MangaDex</button>
-          <button class="tab" data-source="kitsu">Kitsu</button>
+          <button class="tab active" data-source="kitsu">Kitsu</button>
+          <button class="tab" data-source="mangadex">MangaDex</button>
         </div>
-        <div class="tabs" id="jmodeRow" style="display:none">
+        <div class="tabs" id="jmodeRow">
           <button class="tab active" data-jmode="title">Search by title</button>
           <button class="tab" data-jmode="id">Search by ID</button>
         </div>
         <div class="row"><div><label id="jikanLabel">Title</label><input type="text" id="jikanQ"></div>
         <div style="flex:0 0 auto;align-self:flex-end"><button class="btn btn-light" id="jikanBtn">Search</button></div></div>
-        <div class="hint" id="jikanHint">Title search: try a manga name.</div>
+        <div class="hint" id="jikanHint">Title search via Kitsu. Try a manga name.</div>
         <div id="jikanResults"></div>
       </div>
     </section>
@@ -865,7 +865,7 @@ document.getElementById('epForm').addEventListener('submit', async function(e){
     loadChapters(); loadManga();
   } catch(err){ toast(err.message); }
 });
-var importSource = 'mangadex';
+var importSource = 'kitsu';
 var jikanMode = 'title';
 function updateImportHint(){
   var label = document.getElementById('jikanLabel');

@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/author/:path*", "destination": "/search/" },
+    { "source": "/tag/:path*", "destination": "/search/" },
+    { "source": "/group/:path*", "destination": "/groups/" },
+    { "source": "/manga/browse", "destination": "/search/" }
+  ]
+}

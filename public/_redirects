@@ -1,0 +1,14 @@
+/admin /admin/login/ 302
+/admin/ /admin/login/ 302
+/author/* /search/ 200
+/tag/* /search/ 200
+/group/* /groups/ 200
+/manga/browse /search/ 301
+/manga/* /search/ 200
+/discover /discover/new/ 302
+/browse /discover/new/ 301
+/browse/ /discover/new/ 301
+/latest /updates 301
+/latest/ /updates 301
+/register/ /auth/register/ 301
+/register /auth/register/ 301

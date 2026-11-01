@@ -1,0 +1,193 @@
+<!doctype html>
+<html data-ui-default="bora" data-ui-private="1" lang="en" data-ui-design="old">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+		<meta name="theme-color" content="#202020" />
+		<link rel="icon" href="/favicon.ico?v=4" sizes="48x48" />
+		<link rel="icon" href="/favicon-32x32.png?v=4" sizes="32x32" type="image/png" />
+		<link rel="icon" href="/favicon-16x16.png?v=4" sizes="16x16" type="image/png" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4" />
+		<link rel="manifest" href="/manifest.webmanifest" />
+		<!-- the design the server marks the page with (data-ui-default="bora" on every domain since 2026-10-26, the owner:
+		     "now use this design on all sites"; the old UI on an unmarked page) unless the reader picked another in the
+		     header's design menu since then, set before the first paint, with the browser bar in that design's background -->
+		<!-- with it, this device's last theme, contrast and text size (appearance.ts writes them), so a light theme never
+		     flashes dark (2026-10-11 audit) -->
+		<script>
+			// the app will start: a chapter's page for search engines (#ui-ssr) never flashes before the reader (owner
+			// 2026-10-21, "ton of glitches"); a crawler without scripts still reads it, and the app removes it when it starts
+			document.documentElement.dataset.js = "1";
+			try {
+				var d = document.documentElement,
+					pick = localStorage.getItem("app:ui-design"),
+					marked = d.dataset.uiDefault === "bora",
+					// on a marked page only a pick made since Bora opened on every domain holds (ui-design.ts PICKED)
+					held = (pick === "old" || pick === "new") && (!marked || localStorage.getItem("app:ui-design-v") === "2"),
+					design = held ? pick : marked ? "bora" : "old",
+					b = JSON.parse(localStorage.getItem("app:appearance-boot") || "null");
+				if (design === "new") delete d.dataset.uiDesign;
+				else d.dataset.uiDesign = design;
+				if (b && typeof b === "object") {
+					if (b.theme === "light" || b.theme === "black" || b.theme === "dark") {
+						d.dataset.uiTheme = b.theme;
+						d.classList.toggle("dark", b.theme !== "light");
+						d.style.colorScheme = b.theme === "light" ? "light" : "dark";
+					}
+					if (b.contrast === true) d.dataset.uiContrast = "true";
+					if (typeof b.scale === "number" && b.scale >= 1 && b.scale <= 1.5) d.style.setProperty("--ui-text-scale", String(b.scale));
+				}
+				var t = d.dataset.uiTheme;
+				document
+					.querySelector('meta[name="theme-color"]')
+					.setAttribute("content", t === "light" ? (design === "bora" ? "#f7f6fb" : "#f6f7f8") : t === "black" ? "#000000" : design === "old" ? "#202020" : design === "bora" ? "#050407" : "#0a0a0d");
+			} catch (e) {
+				if (d && d.dataset.uiDefault === "bora") d.dataset.uiDesign = "bora";
+			}
+		</script>
+				<!-- 2026-10-31 fallback: the bora theme variables (--b-*) are defined in the app CSS
+		     ONLY under html[data-ui-design=bora]. If the page ever renders bora components
+		     while the attribute is "old"/absent (stale pick, cached shell, design mismatch),
+		     every var(--b-*) colour silently fails: white hero-button text on a white button,
+		     a see-through bottom nav, washed-out fills site-wide. These fallback rules define
+		     the SAME --b-* values for exactly that gap state. They can never change the
+		     approved look: when data-ui-design IS "bora" the :not() selector does not match,
+		     and the app CSS alone applies; old-design rules reference no var(--b-*) at all
+		     (verified), so the old design is untouched. Theme (light/black) overrides mirror
+		     the app CSS blocks. -->
+		<style>
+			html:not([data-ui-design=bora]){--b-bg:#050407;--b-bg-1:#121019;--b-bg-2:#1a1723;--b-bg-3:#24202f;--b-bg-4:#2e293b;--b-fg:#f7f5fc;--b-fg-2:#dcd7e7;--b-fg-3:#b3adc3;--b-violet:#8b5cf6;--b-violet-2:#a78bfa;--b-violet-3:#cbbcff;--b-violet-ink:#6d3ff0;--b-wash:rgb(139 92 246 / .14);--b-fill:rgb(255 255 255 / .06);--b-fill-2:rgb(255 255 255 / .1);--b-fill-3:rgb(255 255 255 / .14);--b-fill-4:rgb(255 255 255 / .19);--b-scrim:rgb(5 4 7 / .72);--b-on-light:#0a0810;--b-good:#4ade80;--b-bad:#f87171;--b-font:"Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo","Noto Sans Display",sans-serif;--b-r-s:1rem;--b-r:1.4rem;--b-r-l:2.2rem;--b-r-pop:1.6rem;--b-pop-pad:.6rem;--b-r-pop-in:calc(var(--b-r-pop) - var(--b-pop-pad));--b-r-pop-sm:calc(var(--b-r-pop-in) - .3rem);--b-max:176rem;--b-gutter:clamp(1.6rem,2.8vw,4rem);--b-nav-h:7.2rem;--b-ease:cubic-bezier(.22,1,.36,1);--b-fast:.16s;--b-mid:.28s;--b-slow:.52s;--b-shadow-pop:0 2.4rem 6.4rem -2.4rem rgb(0 0 0 / .95)}
+			html:not([data-ui-design=bora])[data-ui-theme=light]{--b-bg:#f7f6fb;--b-bg-1:#ffffff;--b-bg-2:#f0edf7;--b-bg-3:#e6e1f0;--b-bg-4:#dbd4e8;--b-fg:#15111d;--b-fg-2:#4a4458;--b-fg-3:#6c6580;--b-violet:#7c4ef0;--b-violet-2:#6d3ff0;--b-violet-3:#5a2fd2;--b-wash:rgb(109 63 240 / .1);--b-fill:rgb(30 15 60 / .04);--b-fill-2:rgb(30 15 60 / .07);--b-fill-3:rgb(30 15 60 / .1);--b-fill-4:rgb(30 15 60 / .14);--b-scrim:rgb(247 246 251 / .8);--b-shadow-pop:0 2.4rem 6.4rem -2.4rem rgb(30 15 60 / .35)}
+			html:not([data-ui-design=bora])[data-ui-theme=black]{--b-bg:#000000;--b-bg-1:#0e0d13;--b-bg-2:#16141d;--b-bg-3:#1f1c28;--b-bg-4:#292534;--b-scrim:rgb(0 0 0 / .78)}
+			/* Hero primary button must never render white-on-white (dark/black themes only;
+			   the light theme keeps its intentional dark button). Belt and braces on top of
+			   the variable fallback above. */
+			html:not([data-ui-theme=light]) .b-spot__actions .b-btn--light{background:#fff!important;color:#0a0810!important}
+		</style>
+		<title>What&#39;s new - BongManga</title>
+		<meta name="description" content="Dated changes to the BongManga reader and website." />
+		<link rel="canonical" href="/whats-new" />
+		<meta property="og:site_name" content="BongManga" />
+		<meta property="og:type" content="website" />
+		<meta property="og:title" content="What&#39;s new" />
+		<meta property="og:description" content="Dated changes to the BongManga reader and website." />
+		<meta property="og:url" content="/whats-new" />
+		<meta property="og:image" content="/og-image.jpg" />
+		<meta name="twitter:image" content="/og-image.jpg" />
+		<meta property="og:image:alt" content="What&#39;s new" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="application-name" content="BongManga" />
+		<link href="/_app/immutable/entry/start.BKpRbCGa.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/CcQSughZ.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/BLSgv8pE.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/DjSCaYo5.js" rel="modulepreload">
+		<link href="/_app/immutable/entry/app.TURNSTILE1.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/TJUxbPvE.js" rel="modulepreload">
+	<link rel="stylesheet" href="/_app/immutable/assets/AppInstall.B7BQDjqZ.css"><link rel="stylesheet" href="/_app/immutable/assets/0.a9YjN3w7.css"><link rel="preload" href="/fonts/noto-sans-display-v30-latin-regular.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/noto-sans-display-v30-latin-500.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/noto-sans-display-v30-latin-600.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/geist-latin-wght.woff2" as="font" type="font/woff2" crossorigin></head>
+	<body data-sveltekit-preload-data="off">
+		<div style="display: contents">
+			<script>
+				{
+					__sveltekit_dya1ko = {
+						base: ""
+					};
+
+					const element = document.currentScript.parentElement;
+
+					Promise.all([
+						import("/_app/immutable/entry/start.BKpRbCGa.js"),
+						import("/_app/immutable/entry/app.TURNSTILE1.js")
+					]).then(([kit, app]) => {
+						kit.start(app, element);
+					});
+				}
+			</script>
+		</div>
+<script>
+/* Site settings bridge (2026-10-31): admin Settings (D1) -> public site.
+   The compiled SPA bundle does not read /api/site-settings, so this small
+   script applies the stored site name, logo, footer social links,
+   announcement and maintenance mode on top of the unchanged SPA markup.
+   It never touches the SPA bundle itself. The ImgBB key is never fetched
+   here (the public endpoint does not return it). */
+(function(){
+  var hide = document.createElement("style");
+  hide.textContent = ".ui-design-switch{display:none!important}";
+  document.head.appendChild(hide);
+  function removeDesignSwitch(){
+    document.querySelectorAll(".ui-design-switch,[aria-label=\"Design\"]").forEach(function(el){ el.remove(); });
+  }
+  var ICONS = {
+    Telegram: '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M21.9 4.6L2.8 11.9c-.8.3-.8 1.4.1 1.8l4.9 1.8 1.9 5.9c.2.7 1.1.9 1.6.3l2.7-3.4 4.9 3.6c.6.5 1.5.1 1.7-.7l1.3-14.2c.1-.8-.6-1.5-1-1.4z"/></svg>',
+    Facebook: '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M13.5 22v-8h2.7l.4-3.2h-3.1V8.7c0-.9.3-1.6 1.7-1.6h1.5V4.2c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 4V10.8H7.8V14h2.7v8h3z"/></svg>',
+    Instagram: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg>',
+    X: '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 4l16 16M20 4L4 20"/></svg>',
+    YouTube: '<svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor" aria-hidden="true"><path d="M21.6 7.2a2.8 2.8 0 0 0-2-2C17.9 4.8 12 4.8 12 4.8s-5.9 0-7.6.4a2.8 2.8 0 0 0-2 2A29 29 0 0 0 2 12a29 29 0 0 0 .4 4.8 2.8 2.8 0 0 0 2 2c1.7.4 7.6.4 7.6.4s5.9 0 7.6-.4a2.8 2.8 0 0 0 2-2A29 29 0 0 0 22 12a29 29 0 0 0-.4-4.8zM10 15.2V8.8L15.5 12 10 15.2z"/></svg>',
+    Discord: '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3c-.2.4-.5.9-.6 1.3a18.3 18.3 0 0 0-5.6 0C9.1 3.9 8.8 3.4 8.6 3a19.8 19.8 0 0 0-4.9 1.4A20.4 20.4 0 0 0 .2 18.1a19.9 19.9 0 0 0 6 3c.5-.7.9-1.4 1.3-2.1-.7-.3-1.4-.6-2-1l.5-.4a14.2 14.2 0 0 0 12 0l.5.4c-.6.4-1.3.7-2 1 .4.7.8 1.4 1.3 2.1a19.9 19.9 0 0 0 6-3A20.4 20.4 0 0 0 20.3 4.4zM8 15.3c-1.2 0-2.1-1.1-2.1-2.4S6.8 10.5 8 10.5s2.1 1.1 2.1 2.4-1 2.4-2.1 2.4zm8 0c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.1 1.1 2.1 2.4-.9 2.4-2.1 2.4z"/></svg>'
+  };
+  function escHtml(v){ return String(v).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  fetch("/api/site-settings").then(function(r){ return r.json(); }).then(function(st){
+    var name = (st.site_name || "").trim();
+    var logo = (st.logo_url || "").trim();
+    var links = {};
+    try { links = JSON.parse(st.social_links || "{}"); } catch (e) { links = {}; }
+    var socials = Object.keys(links).map(function(k){ return { label: k, url: links[k] }; }).filter(function(x){ return x.url; });
+    function apply(){
+      removeDesignSwitch();
+      if (name && name !== "BongManga") {
+        if (document.title.indexOf("BongManga") !== -1) document.title = document.title.split("BongManga").join(name);
+        var og = document.querySelector('meta[property="og:site_name"]'); if (og) og.setAttribute("content", name);
+        var appName = document.querySelector('meta[name="application-name"]'); if (appName) appName.setAttribute("content", name);
+        var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        var nodes = []; while (w.nextNode()) nodes.push(w.currentNode);
+        nodes.forEach(function(n){ if (n.nodeValue.trim() === "BongManga") n.nodeValue = n.nodeValue.replace("BongManga", name); });
+      }
+      if (logo) {
+        document.querySelectorAll("img").forEach(function(img){
+          var src = img.getAttribute("src") || "";
+          if (src.indexOf("logo") !== -1 && img.getAttribute("data-tk-logo") !== "1") { img.setAttribute("src", logo); img.setAttribute("data-tk-logo", "1"); }
+        });
+      }
+      var foot = document.querySelector("footer");
+      if (foot && socials.length) {
+        var old = foot.querySelector("[data-tk-socials]"); if (old) old.remove();
+        var row = document.createElement("div");
+        row.setAttribute("data-tk-socials", "1");
+        row.style.cssText = "display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:12px";
+        row.innerHTML = socials.map(function(x){
+          var icon = ICONS[x.label] || ICONS[x.label.replace("X/Twitter", "X")] || "";
+          return '<a href="' + escHtml(x.url) + '" target="_blank" rel="noopener" aria-label="' + escHtml(x.label) + '" title="' + escHtml(x.label) + '" style="color:inherit;opacity:.85;display:inline-flex">' + icon + "</a>";
+        }).join("");
+        foot.appendChild(row);
+      }
+      if (st.announcement && !document.querySelector("[data-tk-announce]")) {
+        var bar = document.createElement("div");
+        bar.setAttribute("data-tk-announce", "1");
+        bar.style.cssText = "background:#1d1114;border-bottom:1px solid #e11d2e;color:#f5f5f6;padding:10px 16px;text-align:center;font-size:14px";
+        bar.innerHTML = "<span>" + escHtml(st.announcement) + "</span> <button type=\"button\" aria-label=\"Dismiss\" style=\"margin-left:12px;background:transparent;border:1px solid #555;color:#fff;border-radius:99px;padding:2px 10px;cursor:pointer\">×</button>";
+        bar.querySelector("button").addEventListener("click", function(){ bar.remove(); });
+        document.body.insertBefore(bar, document.body.firstChild);
+      }
+      if (st.maintenance === "1" && !document.querySelector("[data-tk-maint]")) {
+        var ov = document.createElement("div");
+        ov.setAttribute("data-tk-maint", "1");
+        ov.style.cssText = "position:fixed;inset:0;z-index:9999;background:#0a0a0d;color:#f5f5f6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center";
+        ov.innerHTML = "<h1 style=\"margin:0\">" + escHtml(name || "BongManga") + "</h1><p style=\"color:#9b9ba6;margin:0\">This site is under maintenance right now. Please check back soon.</p><a href=\"/admin/login/\" style=\"color:#fff;border:1px solid #444;border-radius:99px;padding:10px 20px;text-decoration:none\">Admin login</a>";
+        document.body.appendChild(ov);
+      }
+    }
+    apply();
+    var pending = false;
+    new MutationObserver(function(){
+      if (pending) return; pending = true;
+      setTimeout(function(){ pending = false; apply(); }, 300);
+    }).observe(document.body, { childList: true, subtree: true });
+  }).catch(function(){});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+/auth/*
+  Cache-Control: no-store
+/admin/*
+  Cache-Control: no-store
+/api/*
+  Cache-Control: no-store

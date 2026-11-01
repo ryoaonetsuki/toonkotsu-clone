@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Login — BongManga</title>
+<link rel="icon" href="/logo.png">
+<style>
+:root{--bg:#0a0a0d;--panel:#121216;--line:#26262f;--text:#f5f5f6;--muted:#9b9ba6;--red:#e11d2e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.topbar{height:64px;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--line);background:rgba(15,15,19,.9);backdrop-filter:blur(8px);position:sticky;top:0;z-index:40}
+.topbar img.logo{width:32px;height:32px;border-radius:9px}
+.brand{font-weight:800;font-size:20px}.brand i{color:var(--red);font-style:normal}
+.badge{background:var(--red);color:#fff;font-size:11px;font-weight:800;padding:4px 9px;border-radius:999px;letter-spacing:.05em}
+.spacer{flex:1}.ghost{border:1px solid var(--line);background:transparent;color:var(--text);padding:8px 14px;border-radius:999px;cursor:pointer;text-decoration:none}
+.wrap{min-height:calc(100vh - 64px);display:flex;align-items:center;justify-content:center;padding:24px}
+.card{width:100%;max-width:400px;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:28px;box-shadow:0 20px 50px rgba(0,0,0,.45)}
+.logo-big{width:64px;height:64px;border-radius:16px;display:block;margin:0 auto 12px}
+h1{text-align:center;margin:6px 0 4px;font-size:24px}
+.sub{text-align:center;color:var(--muted);margin:0 0 20px;font-size:14px}
+label{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px}
+input{width:100%;background:#0e0e12;border:1px solid var(--line);color:var(--text);border-radius:12px;padding:12px 14px;outline:none;font:inherit}
+input:focus{border-color:var(--red)}
+.btn{width:100%;border:0;border-radius:999px;padding:13px;cursor:pointer;font-weight:700;margin-top:18px;background:#fff;color:#111}
+.btn:disabled{opacity:.6}
+.err{display:none;margin-top:14px;background:#3a161a;border:1px solid #5c2626;color:#fca5a5;border-radius:12px;padding:12px;font-size:13px;line-height:1.5}
+.backlink{display:block;text-align:center;margin-top:16px;color:var(--muted);font-size:14px;text-decoration:none}
+
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit"><img class="logo" src="/logo.png" alt="BongManga logo"><span class="brand">BongManga<i>.</i></span></a>
+  <span class="badge">ADMIN</span>
+  <div class="spacer"></div>
+</header>
+<div class="wrap">
+  <div class="card">
+    <img class="logo-big" src="/logo.png" alt="BongManga logo">
+    <h1>Admin Login</h1>
+    <p class="sub">Sign in to manage the site.</p>
+    <form id="loginForm">
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="username" required>
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <button class="btn" id="loginBtn" type="submit">Log in</button>
+      <div class="err" id="errBox"></div>
+    </form>
+  </div>
+</div>
+<script>
+document.getElementById('loginForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  var btn = document.getElementById('loginBtn');
+  var err = document.getElementById('errBox');
+  btn.disabled = true; btn.textContent = 'Signing in…'; err.style.display = 'none';
+  try {
+    var res = await fetch('/api/admin/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: document.getElementById('email').value.trim(), password: document.getElementById('password').value }) });
+    var data = await res.json().catch(function(){ return {}; });
+    if (!res.ok) throw new Error(data.error || 'Login failed. Please try again.');
+    location.href = '/admin/panel/';
+  } catch (ex) {
+    err.textContent = ex.message; err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Log in';
+  }
+});
+</script>
+
+<footer style="text-align:center;color:#9b9ba6;font-size:12px;padding:12px">© 2026 BongManga.</footer>
+<script>
+fetch('/api/site-settings').then(function(r){ return r.json(); }).then(function(st){
+  if (st.logo_url) document.querySelectorAll('img.logo, img.logo-big').forEach(function(img){ img.src = st.logo_url; });
+  if (st.site_name) {
+    document.querySelectorAll('.brand').forEach(function(b){ b.innerHTML = st.site_name.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '<i>.</i>'; });
+    document.title = document.title.replace('BongManga', st.site_name);
+    var foot = document.querySelector('footer'); if (foot) foot.innerHTML = foot.innerHTML.replace('BongManga', st.site_name.replace(/&/g,'&amp;').replace(/</g,'&lt;'));
+  }
+}).catch(function(){});
+</script>
+</body>
+
+</html>

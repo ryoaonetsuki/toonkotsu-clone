@@ -1,0 +1,1 @@
+import{O as a,P as r,Q as s,R as t,S as e,T as o}from"./DjSCaYo5.js";function d(o,d,f){a(()=>{var a=r(()=>d(o,f?.())||{});if(f&&a?.update){var i=!1,p={};s(()=>{var r=f();t(r),i&&e(p,r)&&(p=r,a.update(r))}),i=!0}if(a?.destroy)return()=>a.destroy()})}o();export{d as a};

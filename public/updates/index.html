@@ -1,0 +1,228 @@
+<!doctype html>
+<html data-ui-default="bora" data-ui-private="1" lang="en" data-ui-design="old">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+		<meta name="theme-color" content="#202020" />
+		<link rel="icon" href="/favicon.ico?v=4" sizes="48x48" />
+		<link rel="icon" href="/favicon-32x32.png?v=4" sizes="32x32" type="image/png" />
+		<link rel="icon" href="/favicon-16x16.png?v=4" sizes="16x16" type="image/png" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4" />
+		<link rel="manifest" href="/manifest.webmanifest" />
+		<!-- the design the server marks the page with (data-ui-default="bora" on every domain since 2026-10-26, the owner:
+		     "now use this design on all sites"; the old UI on an unmarked page) unless the reader picked another in the
+		     header's design menu since then, set before the first paint, with the browser bar in that design's background -->
+		<!-- with it, this device's last theme, contrast and text size (appearance.ts writes them), so a light theme never
+		     flashes dark (2026-10-11 audit) -->
+		<script>
+			// the app will start: a chapter's page for search engines (#ui-ssr) never flashes before the reader (owner
+			// 2026-10-21, "ton of glitches"); a crawler without scripts still reads it, and the app removes it when it starts
+			document.documentElement.dataset.js = "1";
+			try {
+				var d = document.documentElement,
+					pick = localStorage.getItem("app:ui-design"),
+					marked = d.dataset.uiDefault === "bora",
+					// on a marked page only a pick made since Bora opened on every domain holds (ui-design.ts PICKED)
+					held = (pick === "old" || pick === "new") && (!marked || localStorage.getItem("app:ui-design-v") === "2"),
+					design = held ? pick : marked ? "bora" : "old",
+					b = JSON.parse(localStorage.getItem("app:appearance-boot") || "null");
+				if (design === "new") delete d.dataset.uiDesign;
+				else d.dataset.uiDesign = design;
+				if (b && typeof b === "object") {
+					if (b.theme === "light" || b.theme === "black" || b.theme === "dark") {
+						d.dataset.uiTheme = b.theme;
+						d.classList.toggle("dark", b.theme !== "light");
+						d.style.colorScheme = b.theme === "light" ? "light" : "dark";
+					}
+					if (b.contrast === true) d.dataset.uiContrast = "true";
+					if (typeof b.scale === "number" && b.scale >= 1 && b.scale <= 1.5) d.style.setProperty("--ui-text-scale", String(b.scale));
+				}
+				var t = d.dataset.uiTheme;
+				document
+					.querySelector('meta[name="theme-color"]')
+					.setAttribute("content", t === "light" ? (design === "bora" ? "#f7f6fb" : "#f6f7f8") : t === "black" ? "#000000" : design === "old" ? "#202020" : design === "bora" ? "#050407" : "#0a0a0d");
+			} catch (e) {
+				if (d && d.dataset.uiDefault === "bora") d.dataset.uiDesign = "bora";
+			}
+		</script>
+				<!-- 2026-10-31 fallback: the bora theme variables (--b-*) are defined in the app CSS
+		     ONLY under html[data-ui-design=bora]. If the page ever renders bora components
+		     while the attribute is "old"/absent (stale pick, cached shell, design mismatch),
+		     every var(--b-*) colour silently fails: white hero-button text on a white button,
+		     a see-through bottom nav, washed-out fills site-wide. These fallback rules define
+		     the SAME --b-* values for exactly that gap state. They can never change the
+		     approved look: when data-ui-design IS "bora" the :not() selector does not match,
+		     and the app CSS alone applies; old-design rules reference no var(--b-*) at all
+		     (verified), so the old design is untouched. Theme (light/black) overrides mirror
+		     the app CSS blocks. -->
+		<style>
+			html:not([data-ui-design=bora]){--b-bg:#050407;--b-bg-1:#121019;--b-bg-2:#1a1723;--b-bg-3:#24202f;--b-bg-4:#2e293b;--b-fg:#f7f5fc;--b-fg-2:#dcd7e7;--b-fg-3:#b3adc3;--b-violet:#8b5cf6;--b-violet-2:#a78bfa;--b-violet-3:#cbbcff;--b-violet-ink:#6d3ff0;--b-wash:rgb(139 92 246 / .14);--b-fill:rgb(255 255 255 / .06);--b-fill-2:rgb(255 255 255 / .1);--b-fill-3:rgb(255 255 255 / .14);--b-fill-4:rgb(255 255 255 / .19);--b-scrim:rgb(5 4 7 / .72);--b-on-light:#0a0810;--b-good:#4ade80;--b-bad:#f87171;--b-font:"Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo","Noto Sans Display",sans-serif;--b-r-s:1rem;--b-r:1.4rem;--b-r-l:2.2rem;--b-r-pop:1.6rem;--b-pop-pad:.6rem;--b-r-pop-in:calc(var(--b-r-pop) - var(--b-pop-pad));--b-r-pop-sm:calc(var(--b-r-pop-in) - .3rem);--b-max:176rem;--b-gutter:clamp(1.6rem,2.8vw,4rem);--b-nav-h:7.2rem;--b-ease:cubic-bezier(.22,1,.36,1);--b-fast:.16s;--b-mid:.28s;--b-slow:.52s;--b-shadow-pop:0 2.4rem 6.4rem -2.4rem rgb(0 0 0 / .95)}
+			html:not([data-ui-design=bora])[data-ui-theme=light]{--b-bg:#f7f6fb;--b-bg-1:#ffffff;--b-bg-2:#f0edf7;--b-bg-3:#e6e1f0;--b-bg-4:#dbd4e8;--b-fg:#15111d;--b-fg-2:#4a4458;--b-fg-3:#6c6580;--b-violet:#7c4ef0;--b-violet-2:#6d3ff0;--b-violet-3:#5a2fd2;--b-wash:rgb(109 63 240 / .1);--b-fill:rgb(30 15 60 / .04);--b-fill-2:rgb(30 15 60 / .07);--b-fill-3:rgb(30 15 60 / .1);--b-fill-4:rgb(30 15 60 / .14);--b-scrim:rgb(247 246 251 / .8);--b-shadow-pop:0 2.4rem 6.4rem -2.4rem rgb(30 15 60 / .35)}
+			html:not([data-ui-design=bora])[data-ui-theme=black]{--b-bg:#000000;--b-bg-1:#0e0d13;--b-bg-2:#16141d;--b-bg-3:#1f1c28;--b-bg-4:#292534;--b-scrim:rgb(0 0 0 / .78)}
+			/* Hero primary button must never render white-on-white (dark/black themes only;
+			   the light theme keeps its intentional dark button). Belt and braces on top of
+			   the variable fallback above. */
+			html:not([data-ui-theme=light]) .b-spot__actions .b-btn--light{background:#fff!important;color:#0a0810!important}
+		</style>
+		<title>Latest Updates - BongManga</title>
+		<meta name="description" content="The newest manga, manhwa and manhua chapters on BongManga, latest first." />
+		<link rel="canonical" href="/updates" />
+		<meta property="og:site_name" content="BongManga" />
+		<meta property="og:type" content="website" />
+		<meta property="og:title" content="Latest Updates" />
+		<meta property="og:description" content="The newest manga, manhwa and manhua chapters on BongManga, latest first." />
+		<meta property="og:url" content="/updates" />
+		<meta property="og:image" content="/og-image.jpg" />
+		<meta name="twitter:image" content="/og-image.jpg" />
+		<meta property="og:image:alt" content="Latest Updates" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta name="twitter:card" content="summary_large_image" /><style>
+#ui-ssr{box-sizing:border-box;max-width:1080px;margin:24px auto;padding:0 18px 28px;color:#e7e7e7;background:#202020;font:14px/1.6 system-ui,sans-serif;overflow-wrap:anywhere}
+#ui-ssr *{box-sizing:border-box}
+#ui-ssr h1{font-size:24px;line-height:1.3;margin:0 0 14px;font-weight:650}
+#ui-ssr h2{font-size:18px;margin:20px 0 10px;font-weight:600}
+#ui-ssr a{color:inherit;text-decoration:none}
+#ui-ssr a:hover{text-decoration:underline}
+#ui-ssr a:focus-visible,#ui-ssr summary:focus-visible{outline:2px solid #b6d7b1;outline-offset:3px}
+#ui-ssr p{margin:8px 0}
+#ui-ssr ul,#ui-ssr ol{margin:0;padding-left:20px}
+#ui-ssr .ui-heading{display:flex;gap:22px;align-items:flex-start}
+#ui-ssr .ui-heading>div{min-width:0;flex:1}
+#ui-ssr .ui-cover{width:200px;max-width:35%;height:auto;border-radius:3px}
+#ui-ssr .ui-description{white-space:pre-line}
+#ui-ssr .ui-breadcrumbs{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin-bottom:20px;color:#b0b0b0;font-size:12px}
+#ui-ssr .ui-breadcrumbs li+li::before{content:"/";margin-right:8px}
+#ui-ssr .ui-metadata{margin:0}
+#ui-ssr .ui-metadata>div{display:flex;gap:10px;margin:5px 0}
+#ui-ssr dt{font-weight:600;min-width:66px}
+#ui-ssr dd{margin:0}
+#ui-ssr .ui-actions,#ui-ssr .ui-links{display:flex;flex-wrap:wrap;gap:7px;padding:0;list-style:none}
+#ui-ssr .ui-actions{margin-top:15px}
+#ui-ssr .ui-actions a,#ui-ssr .ui-links a{display:inline-block;background:#2d2d2d;border-radius:3px;padding:5px 10px}
+#ui-ssr .ui-chapters{list-style:none;padding:0;border:1px solid #363636;border-radius:3px}
+#ui-ssr .ui-chapters>li{padding:9px 12px}
+#ui-ssr .ui-chapters>li+li{border-top:1px solid #363636}
+#ui-ssr .ui-volume{margin-left:12px;color:#aaa;font-size:12px}
+#ui-ssr details{font-size:12px;color:#aaa;margin-top:3px}
+#ui-ssr summary{cursor:pointer}
+#ui-ssr .ui-pagination{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+#ui-ssr .ui-pagination a,#ui-ssr .ui-pagination span{padding:4px 10px;background:#2d2d2d;border-radius:3px}
+#ui-ssr .ui-pagination [aria-current]{outline:1px solid #aaa}
+#ui-ssr .ui-related{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+@media(max-width:520px){#ui-ssr{padding:0 12px 20px}#ui-ssr .ui-heading{gap:14px}#ui-ssr h1{font-size:20px}#ui-ssr .ui-cover{max-width:30%}#ui-ssr .ui-metadata>div{display:block}}
+html[data-js] #ui-ssr[data-kind="chapter"]{display:none}
+</style><script id="ui-structured-data" type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"CollectionPage","@id":"/updates#page","url":"/updates","name":"Latest Updates","description":"The newest manga, manhwa and manhua chapters on BongManga, latest first.","mainEntity":{"@type":"ItemList","numberOfItems":72,"itemListElement":[{"@type":"ListItem","position":1,"url":"/title/landlord-sisters","name":"Landlord Sisters"},{"@type":"ListItem","position":2,"url":"/title/swan-s-grave","name":"Swan's Grave"},{"@type":"ListItem","position":3,"url":"/title/the-demon-king-wants-to-live-in-peace","name":"The Demon King Wants to Live in Peace"},{"@type":"ListItem","position":4,"url":"/title/something-about-you","name":"Something About You"},{"@type":"ListItem","position":5,"url":"/title/can-i-burn-the-short-bus","name":"Can I Burn the Short Bus?"},{"@type":"ListItem","position":6,"url":"/title/i-can-t-believe-i-m-an-m","name":"I Can't Believe I'm an M?"},{"@type":"ListItem","position":7,"url":"/title/drama-queens","name":"Drama Queens"},{"@type":"ListItem","position":8,"url":"/title/i-failed-to-oust-the-villain","name":"I Failed to Oust the Villain!"},{"@type":"ListItem","position":9,"url":"/title/my-bias-gets-on-the-last-train","name":"My Bias Gets on the Last Train"},{"@type":"ListItem","position":10,"url":"/title/someone-stop-her","name":"Someone Stop Her!"},{"@type":"ListItem","position":11,"url":"/title/brave-new-world","name":"Brave New World!"},{"@type":"ListItem","position":12,"url":"/title/i-m-the-only-man-on-the-military-base","name":"I'm the Only Man on the Military Base"},{"@type":"ListItem","position":13,"url":"/title/falling-eunsu","name":"Falling (Eunsu)"},{"@type":"ListItem","position":14,"url":"/title/cherry-pop","name":"Cherry Pop"},{"@type":"ListItem","position":15,"url":"/title/just-hold-my-hand","name":"Just Hold My Hand"},{"@type":"ListItem","position":16,"url":"/title/in-home-secretary","name":"In-Home Secretary"},{"@type":"ListItem","position":17,"url":"/title/shaking-husband","name":"Shaking Husband"},{"@type":"ListItem","position":18,"url":"/title/love-is-sweet-living-together-is-spicy","name":"Love Is Sweet, Living Together Is Spicy"},{"@type":"ListItem","position":19,"url":"/title/i-will-teach-you-self-defense","name":"I Will Teach You Self Defense"},{"@type":"ListItem","position":20,"url":"/title/winged-robe-affair","name":"Winged Robe Affair"},{"@type":"ListItem","position":21,"url":"/title/the-professor-s-secret-account","name":"The Professor's Secret Account"},{"@type":"ListItem","position":22,"url":"/title/devouring-my-childhood-friend","name":"Devouring My Childhood Friend"},{"@type":"ListItem","position":23,"url":"/title/distorted-love","name":"Distorted Love"},{"@type":"ListItem","position":24,"url":"/title/fated-to-be-with-my-childhood-friend","name":"Fated to Be With My Childhood Friend"},{"@type":"ListItem","position":25,"url":"/title/love-junkie","name":"Love Junkie"},{"@type":"ListItem","position":26,"url":"/title/let-s-meet-in-the-chili-pepper-field","name":"Let's Meet in the Chili Pepper Field!"},{"@type":"ListItem","position":27,"url":"/title/the-class-of-desire","name":"The Class of Desire"},{"@type":"ListItem","position":28,"url":"/title/the-maid-is-too-much","name":"The Maid Is Too Much!"},{"@type":"ListItem","position":29,"url":"/title/let-s-meet-in-the-chili-pepper-field-2","name":"Let's Meet in the Chili Pepper Field!"},{"@type":"ListItem","position":30,"url":"/title/immoral-lies","name":"Immoral Lies"},{"@type":"ListItem","position":31,"url":"/title/how-to-survive-as-the-monster-duke-s-wife","name":"How to Survive as the Monster Duke's Wife"},{"@type":"ListItem","position":32,"url":"/title/love-on-target","name":"Love on Target"},{"@type":"ListItem","position":33,"url":"/title/like-spring-fluttering-across-the-snowy-mountains","name":"Like Spring Fluttering Across the Snowy Mountains"},{"@type":"ListItem","position":34,"url":"/title/burning-for-you","name":"Burning for You"},{"@type":"ListItem","position":35,"url":"/title/how-to-make-love-in-a-fantasy-world","name":"How to Make Love in a Fantasy World"},{"@type":"ListItem","position":36,"url":"/title/the-beast-of-alvard-manor","name":"The Beast of Alvard Manor"},{"@type":"ListItem","position":37,"url":"/title/marriage-classic","name":"Marriage Classic"},{"@type":"ListItem","position":38,"url":"/title/to-you-who-isn-t-kind","name":"To You, Who Isn't Kind"},{"@type":"ListItem","position":39,"url":"/title/the-collector-s-cage","name":"The Collector's Cage"},{"@type":"ListItem","position":40,"url":"/title/my-sweet-heart","name":"My Sweet Heart"},{"@type":"ListItem","position":41,"url":"/title/if-you-dare-to-provoke-me","name":"If You Dare to Provoke Me"},{"@type":"ListItem","position":42,"url":"/title/dirty-fantasy","name":"Dirty Fantasy"},{"@type":"ListItem","position":43,"url":"/title/my-sweet-and-loyal-grand-duke","name":"My Sweet and Loyal Grand Duke"},{"@type":"ListItem","position":44,"url":"/title/the-hand-that-once-fed","name":"The Hand That Once Fed"},{"@type":"ListItem","position":45,"url":"/title/the-villain-s-pure-love","name":"The Villain's Pure Love"},{"@type":"ListItem","position":46,"url":"/title/ash-covered-pure-love","name":"Ash-Covered Pure Love"},{"@type":"ListItem","position":47,"url":"/title/love-me-more-kim-in-jeong","name":"Love Me More (Kim In-Jeong)"},{"@type":"ListItem","position":48,"url":"/title/born-in-black","name":"Born in Black"},{"@type":"ListItem","position":49,"url":"/title/absolute-adoration","name":"Absolute Adoration"},{"@type":"ListItem","position":50,"url":"/title/the-man-i-had-a-one-night-stand-with-turned-out-to-be-my-fianc","name":"The Man I Had a One-Night Stand With Turned out to Be My Fiancé"},{"@type":"ListItem","position":51,"url":"/title/the-twenty-year-old-bride","name":"The Twenty-Year-Old Bride"},{"@type":"ListItem","position":52,"url":"/title/back-alley-blues","name":"Back Alley Blues"},{"@type":"ListItem","position":53,"url":"/title/missing-wife","name":"Missing Wife"},{"@type":"ListItem","position":54,"url":"/title/shaking-husband-2","name":"Shaking Husband"},{"@type":"ListItem","position":55,"url":"/title/how-friendship-ends","name":"How Friendship Ends"},{"@type":"ListItem","position":56,"url":"/title/dirty-class","name":"Dirty Class"},{"@type":"ListItem","position":57,"url":"/title/every-day-every-night","name":"Every Day, Every Night"},{"@type":"ListItem","position":58,"url":"/title/absolute-advantage","name":"Absolute Advantage"},{"@type":"ListItem","position":59,"url":"/title/the-reincarnated-man","name":"The Reincarnated Man"},{"@type":"ListItem","position":60,"url":"/title/bad-secretary","name":"Bad Secretary"},{"@type":"ListItem","position":61,"url":"/title/blood-time","name":"Blood Time"},{"@type":"ListItem","position":62,"url":"/title/my-fifth-arranged-marriage-is-with-you-who-hates-me","name":"My Fifth Arranged Marriage Is With You, Who Hates Me"},{"@type":"ListItem","position":63,"url":"/title/pure-innocence","name":"Pure Innocence"},{"@type":"ListItem","position":64,"url":"/title/layers-of-night","name":"Layers of Night"},{"@type":"ListItem","position":65,"url":"/title/gyeongseong-lingerie-dressing-room","name":"Gyeongseong Lingerie Dressing Room"},{"@type":"ListItem","position":66,"url":"/title/boys-and-girls-should-not-sit-together-after-the-age-of-seven","name":"Boys and Girls Should Not Sit Together After the Age of Seven"},{"@type":"ListItem","position":67,"url":"/title/my-childhood-friend-loves-me-while-hypnotized","name":"My Childhood Friend Loves Me While Hypnotized"},{"@type":"ListItem","position":68,"url":"/title/male-school","name":"Male School"},{"@type":"ListItem","position":69,"url":"/title/delusional-romance-is-a-no-go","name":"Delusional Romance Is A No Go"},{"@type":"ListItem","position":70,"url":"/title/my-very-own-x","name":"My Very Own X"},{"@type":"ListItem","position":71,"url":"/title/under-the-oak-tree","name":"Under the Oak Tree"},{"@type":"ListItem","position":72,"url":"/title/fall-for-contractual-bonds","name":"Fall for Contractual Bonds"}]}}]}</script>
+		<meta name="application-name" content="BongManga" />
+		<link href="/_app/immutable/entry/start.BKpRbCGa.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/CcQSughZ.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/BLSgv8pE.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/DjSCaYo5.js" rel="modulepreload">
+		<link href="/_app/immutable/entry/app.TURNSTILE1.js" rel="modulepreload">
+		<link href="/_app/immutable/chunks/TJUxbPvE.js" rel="modulepreload">
+	<link rel="stylesheet" href="/_app/immutable/assets/AppInstall.B7BQDjqZ.css"><link rel="stylesheet" href="/_app/immutable/assets/0.a9YjN3w7.css"><link rel="preload" href="/fonts/noto-sans-display-v30-latin-regular.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/noto-sans-display-v30-latin-500.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/noto-sans-display-v30-latin-600.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/geist-latin-wght.woff2" as="font" type="font/woff2" crossorigin></head>
+	<body data-sveltekit-preload-data="off"><main id="ui-ssr" data-kind="list" hidden><nav aria-label="Breadcrumb"><ol class="ui-breadcrumbs"><li><a href="/">Home</a></li><li><span aria-current="page">Latest Updates</span></li></ol></nav><h1>Latest Updates</h1><p>The newest manga, manhwa and manhua chapters on BongManga, latest first.</p><ul class="ui-related"><li><a href="/title/landlord-sisters">Landlord Sisters</a></li><li><a href="/title/swan-s-grave">Swan's Grave</a></li><li><a href="/title/the-demon-king-wants-to-live-in-peace">The Demon King Wants to Live in Peace</a></li><li><a href="/title/something-about-you">Something About You</a></li><li><a href="/title/can-i-burn-the-short-bus">Can I Burn the Short Bus?</a></li><li><a href="/title/i-can-t-believe-i-m-an-m">I Can't Believe I'm an M?</a></li><li><a href="/title/drama-queens">Drama Queens</a></li><li><a href="/title/i-failed-to-oust-the-villain">I Failed to Oust the Villain!</a></li><li><a href="/title/my-bias-gets-on-the-last-train">My Bias Gets on the Last Train</a></li><li><a href="/title/someone-stop-her">Someone Stop Her!</a></li><li><a href="/title/brave-new-world">Brave New World!</a></li><li><a href="/title/i-m-the-only-man-on-the-military-base">I'm the Only Man on the Military Base</a></li><li><a href="/title/falling-eunsu">Falling (Eunsu)</a></li><li><a href="/title/cherry-pop">Cherry Pop</a></li><li><a href="/title/just-hold-my-hand">Just Hold My Hand</a></li><li><a href="/title/in-home-secretary">In-Home Secretary</a></li><li><a href="/title/shaking-husband">Shaking Husband</a></li><li><a href="/title/love-is-sweet-living-together-is-spicy">Love Is Sweet, Living Together Is Spicy</a></li><li><a href="/title/i-will-teach-you-self-defense">I Will Teach You Self Defense</a></li><li><a href="/title/winged-robe-affair">Winged Robe Affair</a></li><li><a href="/title/the-professor-s-secret-account">The Professor's Secret Account</a></li><li><a href="/title/devouring-my-childhood-friend">Devouring My Childhood Friend</a></li><li><a href="/title/distorted-love">Distorted Love</a></li><li><a href="/title/fated-to-be-with-my-childhood-friend">Fated to Be With My Childhood Friend</a></li><li><a href="/title/love-junkie">Love Junkie</a></li><li><a href="/title/let-s-meet-in-the-chili-pepper-field">Let's Meet in the Chili Pepper Field!</a></li><li><a href="/title/the-class-of-desire">The Class of Desire</a></li><li><a href="/title/the-maid-is-too-much">The Maid Is Too Much!</a></li><li><a href="/title/let-s-meet-in-the-chili-pepper-field-2">Let's Meet in the Chili Pepper Field!</a></li><li><a href="/title/immoral-lies">Immoral Lies</a></li><li><a href="/title/how-to-survive-as-the-monster-duke-s-wife">How to Survive as the Monster Duke's Wife</a></li><li><a href="/title/love-on-target">Love on Target</a></li><li><a href="/title/like-spring-fluttering-across-the-snowy-mountains">Like Spring Fluttering Across the Snowy Mountains</a></li><li><a href="/title/burning-for-you">Burning for You</a></li><li><a href="/title/how-to-make-love-in-a-fantasy-world">How to Make Love in a Fantasy World</a></li><li><a href="/title/the-beast-of-alvard-manor">The Beast of Alvard Manor</a></li><li><a href="/title/marriage-classic">Marriage Classic</a></li><li><a href="/title/to-you-who-isn-t-kind">To You, Who Isn't Kind</a></li><li><a href="/title/the-collector-s-cage">The Collector's Cage</a></li><li><a href="/title/my-sweet-heart">My Sweet Heart</a></li><li><a href="/title/if-you-dare-to-provoke-me">If You Dare to Provoke Me</a></li><li><a href="/title/dirty-fantasy">Dirty Fantasy</a></li><li><a href="/title/my-sweet-and-loyal-grand-duke">My Sweet and Loyal Grand Duke</a></li><li><a href="/title/the-hand-that-once-fed">The Hand That Once Fed</a></li><li><a href="/title/the-villain-s-pure-love">The Villain's Pure Love</a></li><li><a href="/title/ash-covered-pure-love">Ash-Covered Pure Love</a></li><li><a href="/title/love-me-more-kim-in-jeong">Love Me More (Kim In-Jeong)</a></li><li><a href="/title/born-in-black">Born in Black</a></li><li><a href="/title/absolute-adoration">Absolute Adoration</a></li><li><a href="/title/the-man-i-had-a-one-night-stand-with-turned-out-to-be-my-fianc">The Man I Had a One-Night Stand With Turned out to Be My Fiancé</a></li><li><a href="/title/the-twenty-year-old-bride">The Twenty-Year-Old Bride</a></li><li><a href="/title/back-alley-blues">Back Alley Blues</a></li><li><a href="/title/missing-wife">Missing Wife</a></li><li><a href="/title/shaking-husband-2">Shaking Husband</a></li><li><a href="/title/how-friendship-ends">How Friendship Ends</a></li><li><a href="/title/dirty-class">Dirty Class</a></li><li><a href="/title/every-day-every-night">Every Day, Every Night</a></li><li><a href="/title/absolute-advantage">Absolute Advantage</a></li><li><a href="/title/the-reincarnated-man">The Reincarnated Man</a></li><li><a href="/title/bad-secretary">Bad Secretary</a></li><li><a href="/title/blood-time">Blood Time</a></li><li><a href="/title/my-fifth-arranged-marriage-is-with-you-who-hates-me">My Fifth Arranged Marriage Is With You, Who Hates Me</a></li><li><a href="/title/pure-innocence">Pure Innocence</a></li><li><a href="/title/layers-of-night">Layers of Night</a></li><li><a href="/title/gyeongseong-lingerie-dressing-room">Gyeongseong Lingerie Dressing Room</a></li><li><a href="/title/boys-and-girls-should-not-sit-together-after-the-age-of-seven">Boys and Girls Should Not Sit Together After the Age of Seven</a></li><li><a href="/title/my-childhood-friend-loves-me-while-hypnotized">My Childhood Friend Loves Me While Hypnotized</a></li><li><a href="/title/male-school">Male School</a></li><li><a href="/title/delusional-romance-is-a-no-go">Delusional Romance Is A No Go</a></li><li><a href="/title/my-very-own-x">My Very Own X</a></li><li><a href="/title/under-the-oak-tree">Under the Oak Tree</a></li><li><a href="/title/fall-for-contractual-bonds">Fall for Contractual Bonds</a></li></ul><nav aria-label="More" class="ui-links"><a href="/updates">Latest updates</a> <a href="/manga/browse">Browse</a> <a href="/groups">Scan groups</a> <a href="/discover/trending">Trending</a> <a href="/discover/new">New additions</a> <a href="/discover/completed">Completed</a> <a href="/discover/gems">Hidden gems</a> <a href="/discover/seasonal">This season</a> <a href="/year">By year</a></nav></main>
+		<div style="display: contents">
+			<script>
+				{
+					__sveltekit_dya1ko = {
+						base: ""
+					};
+
+					const element = document.currentScript.parentElement;
+
+					Promise.all([
+						import("/_app/immutable/entry/start.BKpRbCGa.js"),
+						import("/_app/immutable/entry/app.TURNSTILE1.js")
+					]).then(([kit, app]) => {
+						kit.start(app, element);
+					});
+				}
+			</script>
+		</div>
+<script>
+/* Site settings bridge (2026-10-31): admin Settings (D1) -> public site.
+   The compiled SPA bundle does not read /api/site-settings, so this small
+   script applies the stored site name, logo, footer social links,
+   announcement and maintenance mode on top of the unchanged SPA markup.
+   It never touches the SPA bundle itself. The ImgBB key is never fetched
+   here (the public endpoint does not return it). */
+(function(){
+  var hide = document.createElement("style");
+  hide.textContent = ".ui-design-switch{display:none!important}";
+  document.head.appendChild(hide);
+  function removeDesignSwitch(){
+    document.querySelectorAll(".ui-design-switch,[aria-label=\"Design\"]").forEach(function(el){ el.remove(); });
+  }
+  var ICONS = {
+    Telegram: '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M21.9 4.6L2.8 11.9c-.8.3-.8 1.4.1 1.8l4.9 1.8 1.9 5.9c.2.7 1.1.9 1.6.3l2.7-3.4 4.9 3.6c.6.5 1.5.1 1.7-.7l1.3-14.2c.1-.8-.6-1.5-1-1.4z"/></svg>',
+    Facebook: '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M13.5 22v-8h2.7l.4-3.2h-3.1V8.7c0-.9.3-1.6 1.7-1.6h1.5V4.2c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 4V10.8H7.8V14h2.7v8h3z"/></svg>',
+    Instagram: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg>',
+    X: '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 4l16 16M20 4L4 20"/></svg>',
+    YouTube: '<svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor" aria-hidden="true"><path d="M21.6 7.2a2.8 2.8 0 0 0-2-2C17.9 4.8 12 4.8 12 4.8s-5.9 0-7.6.4a2.8 2.8 0 0 0-2 2A29 29 0 0 0 2 12a29 29 0 0 0 .4 4.8 2.8 2.8 0 0 0 2 2c1.7.4 7.6.4 7.6.4s5.9 0 7.6-.4a2.8 2.8 0 0 0 2-2A29 29 0 0 0 22 12a29 29 0 0 0-.4-4.8zM10 15.2V8.8L15.5 12 10 15.2z"/></svg>',
+    Discord: '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3c-.2.4-.5.9-.6 1.3a18.3 18.3 0 0 0-5.6 0C9.1 3.9 8.8 3.4 8.6 3a19.8 19.8 0 0 0-4.9 1.4A20.4 20.4 0 0 0 .2 18.1a19.9 19.9 0 0 0 6 3c.5-.7.9-1.4 1.3-2.1-.7-.3-1.4-.6-2-1l.5-.4a14.2 14.2 0 0 0 12 0l.5.4c-.6.4-1.3.7-2 1 .4.7.8 1.4 1.3 2.1a19.9 19.9 0 0 0 6-3A20.4 20.4 0 0 0 20.3 4.4zM8 15.3c-1.2 0-2.1-1.1-2.1-2.4S6.8 10.5 8 10.5s2.1 1.1 2.1 2.4-1 2.4-2.1 2.4zm8 0c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.1 1.1 2.1 2.4-.9 2.4-2.1 2.4z"/></svg>'
+  };
+  function escHtml(v){ return String(v).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  fetch("/api/site-settings").then(function(r){ return r.json(); }).then(function(st){
+    var name = (st.site_name || "").trim();
+    var logo = (st.logo_url || "").trim();
+    var links = {};
+    try { links = JSON.parse(st.social_links || "{}"); } catch (e) { links = {}; }
+    var socials = Object.keys(links).map(function(k){ return { label: k, url: links[k] }; }).filter(function(x){ return x.url; });
+    function apply(){
+      removeDesignSwitch();
+      if (name && name !== "BongManga") {
+        if (document.title.indexOf("BongManga") !== -1) document.title = document.title.split("BongManga").join(name);
+        var og = document.querySelector('meta[property="og:site_name"]'); if (og) og.setAttribute("content", name);
+        var appName = document.querySelector('meta[name="application-name"]'); if (appName) appName.setAttribute("content", name);
+        var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        var nodes = []; while (w.nextNode()) nodes.push(w.currentNode);
+        nodes.forEach(function(n){ if (n.nodeValue.trim() === "BongManga") n.nodeValue = n.nodeValue.replace("BongManga", name); });
+      }
+      if (logo) {
+        document.querySelectorAll("img").forEach(function(img){
+          var src = img.getAttribute("src") || "";
+          if (src.indexOf("logo") !== -1 && img.getAttribute("data-tk-logo") !== "1") { img.setAttribute("src", logo); img.setAttribute("data-tk-logo", "1"); }
+        });
+      }
+      var foot = document.querySelector("footer");
+      if (foot && socials.length) {
+        var old = foot.querySelector("[data-tk-socials]"); if (old) old.remove();
+        var row = document.createElement("div");
+        row.setAttribute("data-tk-socials", "1");
+        row.style.cssText = "display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:12px";
+        row.innerHTML = socials.map(function(x){
+          var icon = ICONS[x.label] || ICONS[x.label.replace("X/Twitter", "X")] || "";
+          return '<a href="' + escHtml(x.url) + '" target="_blank" rel="noopener" aria-label="' + escHtml(x.label) + '" title="' + escHtml(x.label) + '" style="color:inherit;opacity:.85;display:inline-flex">' + icon + "</a>";
+        }).join("");
+        foot.appendChild(row);
+      }
+      if (st.announcement && !document.querySelector("[data-tk-announce]")) {
+        var bar = document.createElement("div");
+        bar.setAttribute("data-tk-announce", "1");
+        bar.style.cssText = "background:#1d1114;border-bottom:1px solid #e11d2e;color:#f5f5f6;padding:10px 16px;text-align:center;font-size:14px";
+        bar.innerHTML = "<span>" + escHtml(st.announcement) + "</span> <button type=\"button\" aria-label=\"Dismiss\" style=\"margin-left:12px;background:transparent;border:1px solid #555;color:#fff;border-radius:99px;padding:2px 10px;cursor:pointer\">×</button>";
+        bar.querySelector("button").addEventListener("click", function(){ bar.remove(); });
+        document.body.insertBefore(bar, document.body.firstChild);
+      }
+      if (st.maintenance === "1" && !document.querySelector("[data-tk-maint]")) {
+        var ov = document.createElement("div");
+        ov.setAttribute("data-tk-maint", "1");
+        ov.style.cssText = "position:fixed;inset:0;z-index:9999;background:#0a0a0d;color:#f5f5f6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center";
+        ov.innerHTML = "<h1 style=\"margin:0\">" + escHtml(name || "BongManga") + "</h1><p style=\"color:#9b9ba6;margin:0\">This site is under maintenance right now. Please check back soon.</p><a href=\"/admin/login/\" style=\"color:#fff;border:1px solid #444;border-radius:99px;padding:10px 20px;text-decoration:none\">Admin login</a>";
+        document.body.appendChild(ov);
+      }
+    }
+    apply();
+    var pending = false;
+    new MutationObserver(function(){
+      if (pending) return; pending = true;
+      setTimeout(function(){ pending = false; apply(); }, 300);
+    }).observe(document.body, { childList: true, subtree: true });
+  }).catch(function(){});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Panel — BongManga</title>
+<link rel="icon" href="/logo.png">
+<style>
+:root{--bg:#0a0a0d;--panel:#121216;--card:#17171d;--card2:#1e1e26;--line:#26262f;--text:#f5f5f6;--muted:#9b9ba6;--red:#e11d2e;--green:#22c55e;--amber:#f59e0b;--blue:#38bdf8}
+*{box-sizing:border-box}html,body{overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+a{color:inherit;text-decoration:none}button,input,select,textarea{font:inherit}
+.topbar{height:64px;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--line);background:rgba(15,15,19,.9);backdrop-filter:blur(8px);position:sticky;top:0;z-index:40;width:100%;max-width:100vw}
+.topbar>*{min-width:0}
+.topbar a.brand-link{flex-shrink:1;min-width:0;overflow:hidden}
+.topbar img.logo{width:32px;height:32px;border-radius:9px}
+.brand{font-weight:800;font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.brand i{color:var(--red);font-style:normal}
+.badge{background:var(--red);color:#fff;font-size:11px;font-weight:800;padding:4px 9px;border-radius:999px;letter-spacing:.05em}
+.spacer{flex:1}.avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--line);flex-shrink:0}
+.ghost{border:1px solid var(--line);background:transparent;color:var(--text);padding:8px 14px;border-radius:999px;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.iconbtn{display:none;background:transparent;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 10px;cursor:pointer;font-size:18px}
+.icon{width:20px;height:20px;flex-shrink:0;vertical-align:middle}
+.layout{display:flex;min-height:calc(100vh - 60px)}
+.sidebar{width:232px;flex-shrink:0;border-right:1px solid var(--line);padding:14px 10px;background:#0f0f13}
+.side-btn{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:transparent;border:0;color:var(--muted);padding:11px 12px;border-radius:12px;cursor:pointer;font-weight:600;font-size:14px;transition:background .15s,color .15s}
+.side-btn.active{background:var(--card2);color:var(--text)}
+.side-btn:hover{color:var(--text);background:#18181e}
+.side-group{font-size:11px;letter-spacing:.08em;color:#6b6b76;padding:16px 12px 6px;font-weight:700}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:35}
+.overlay.show{display:block}
+.main{flex:1;padding:24px;min-width:0}
+.main h2{margin:0 0 4px}.muted{color:var(--muted);margin:0 0 20px;font-size:14px;line-height:1.5}
+.hint{color:var(--muted);font-size:12px;margin-top:6px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;transition:transform .15s,box-shadow .15s}
+.stat:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.35)}
+.stat b{font-size:27px;display:block}.stat span{color:var(--muted);font-size:13px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
+.card h3{margin:0 0 12px;font-size:16px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{color:var(--muted);text-align:left;font-weight:600;padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px 8px;border-bottom:1px solid #1e1e26;vertical-align:middle}
+.mini{display:flex;align-items:center;gap:10px}.mini img{width:36px;height:52px;object-fit:cover;border-radius:7px}
+.tag{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#26262f}
+.tag.green{background:#12351f;color:#4ade80}.tag.amber{background:#3a2a10;color:#fbbf24}.tag.red{background:#3a161a;color:#f87171}.tag.blue{background:#12283a;color:#7dd3fc}
+.act{border:1px solid var(--line);background:transparent;color:var(--text);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px;white-space:nowrap;transition:background .15s}
+.act:hover{background:var(--card2)}
+.search{max-width:340px;margin-bottom:14px;width:100%}
+label{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px}
+input[type=email],input[type=password],input[type=text],input[type=url],input[type=number],select,textarea{width:100%;background:#0e0e12;border:1px solid var(--line);color:var(--text);border-radius:12px;padding:12px 14px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--red)}
+.btn{border:0;border-radius:999px;padding:12px 22px;cursor:pointer;font-weight:700;transition:opacity .15s}
+.btn:hover{opacity:.9}.btn-light{background:#fff;color:#111}.btn-red{background:var(--red);color:#fff}.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.row{display:flex;gap:12px;flex-wrap:wrap}.row>div{flex:1;min-width:200px}
+.toggle{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #1e1e26}
+.toggle span small{display:block;color:var(--muted)}
+.switch{position:relative;width:46px;height:26px;flex-shrink:0}
+.switch input{opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer;z-index:2}
+.switch .track{position:absolute;inset:0;background:#2a2a33;border-radius:99px;transition:background .2s}
+.switch .track:after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left .2s}
+.switch input:checked + .track{background:var(--red)}
+.switch input:checked + .track:after{left:23px}
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:9px 16px;cursor:pointer;font-weight:600}
+.tab.active{background:#fff;color:#111;border-color:#fff}
+.dropzone{border:2px dashed #3a3a44;border-radius:16px;padding:22px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;background:#0e0e12}
+.dropzone:hover,.dropzone.over{border-color:var(--red);background:#181118}
+.dropzone .dz-icon{font-size:26px;display:block;margin-bottom:6px}
+.dropzone p{margin:4px 0;color:var(--muted);font-size:13px}
+.dropzone b{color:var(--text)}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.thumbs img{width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.bar-row{display:flex;align-items:center;gap:10px;padding:8px 0}.bar-row .bar{flex:1;height:8px;background:#26262f;border-radius:99px;overflow:hidden}.bar-row .fill{height:100%;background:var(--red);border-radius:99px}
+.toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:#fff;color:#111;padding:13px 20px;border-radius:999px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.55);display:none;z-index:60;max-width:92vw;text-align:center}
+.hidden{display:none!important}
+.jikan-card{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #1e1e26;align-items:center}
+.jikan-card img{width:52px;height:74px;object-fit:cover;border-radius:8px}
+.searchbar{display:flex;align-items:stretch;flex:1;min-width:0}
+.searchbar input{flex:1;margin:0!important;border-radius:12px 0 0 12px!important;min-width:0}
+.searchbar button{border:1px solid var(--line);border-left:0;background:#1c1c24;color:var(--text);border-radius:0 12px 12px 0;padding:0 16px;cursor:pointer;display:flex;align-items:center}
+.searchbar button:hover{background:var(--card2)}
+.manga-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.manga-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+.manga-card img.cover{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;background:#1a1a21}
+.manga-card .m-title{padding:12px 12px 4px;font-weight:700;font-size:15px;line-height:1.35}
+.manga-card .m-actions{display:flex;gap:8px;padding:10px 12px 14px;margin-top:auto}
+.manga-card .m-actions .act{flex:1;text-align:center}
+.ch-results{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.ch-result{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;cursor:pointer;background:#121218}
+.ch-result:hover{border-color:var(--red)}
+.ch-result img{width:30px;height:44px;object-fit:cover;border-radius:6px}
+.ch-result.picked{border-color:var(--red);background:#1d1114}
+.spot-banner{display:flex;align-items:center;gap:8px}
+.spot-banner img{width:96px;height:40px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#1a1a21}
+.spot-banner .act{white-space:nowrap}
+.ep-page{position:relative;width:84px;cursor:grab}
+#epThumbs .ep-page img{width:84px;height:112px;object-fit:cover;border-radius:10px;border:1px solid var(--line);margin:0}
+.ep-page .pg-label{display:block;text-align:center;font-size:12px;font-weight:700;margin-top:4px}
+.ep-page .pg-status{display:block;text-align:center;font-size:11px;color:var(--muted);min-height:14px}
+.ep-page .pg-remove{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:#111;color:#fff;cursor:pointer;font-size:13px;line-height:1;padding:0}
+.ep-page.dragging{opacity:.4}
+.ep-page.drag-over{outline:2px solid var(--red);outline-offset:2px;border-radius:10px}
+.bottomnav{display:none}
+@media(max-width:860px){
+  .iconbtn{display:block}
+  .sidebar{position:fixed;left:0;top:64px;bottom:0;z-index:45;transform:translateX(-105%);transition:transform .22s;overflow-y:auto;padding-bottom:110px}
+  .sidebar.open{transform:translateX(0)}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .grid2{grid-template-columns:1fr}
+  .main{padding:16px;padding-bottom:110px}
+  .brand{font-size:18px}
+  .search{max-width:100%}
+  .row>div{min-width:100%}
+  table,thead,tbody,tr,th,td{display:block;width:100%}
+  thead{display:none}
+  tr{border:1px solid var(--line);border-radius:14px;margin-bottom:10px;padding:6px 10px;background:var(--card)}
+  td{border-bottom:0;padding:7px 0;display:flex;justify-content:space-between;gap:12px;text-align:right}
+  td:before{content:attr(data-label);color:var(--muted);font-weight:600;text-align:left}
+  td .mini{text-align:left}
+  .bottomnav{display:flex;position:fixed;left:12px;right:12px;bottom:12px;z-index:40;background:#141419;border:1px solid var(--line);border-radius:999px;padding:10px 10px calc(10px + env(safe-area-inset-bottom));justify-content:space-around;box-shadow:0 12px 30px rgba(0,0,0,.55)}
+  .bottomnav button{background:transparent;border:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:700;cursor:pointer;padding:8px 12px;border-radius:16px;min-width:56px}
+  .bottomnav button .icon{width:23px;height:23px}
+  .bottomnav button.active{color:#fff;background:#2a2a33;box-shadow:inset 0 0 0 1px #34343f}
+  .toast{bottom:110px}
+}
+@media(max-width:480px){
+  .stats{grid-template-columns:1fr}
+  .main{padding:12px;padding-bottom:118px}
+  .card{padding:14px}
+  .side-btn{padding:13px 12px}
+  .act,.btn{padding:12px 18px}
+}
+
+</style>
+</head>
+<body>
+<header class="topbar">
+  <button class="iconbtn" id="menuBtn" aria-label="Open menu"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+  <a class="brand-link" href="/" style="display:flex;align-items:center;gap:10px"><img class="logo" src="/logo.png" alt="BongManga logo"><span class="brand">BongManga<i>.</i></span></a>
+  <div class="spacer"></div>
+  <a class="ghost" href="/">View site</a>
+  <img id="topAvatar" class="avatar" src="/images/avatar.webp" alt="Admin avatar">
+</header>
+<div class="overlay" id="overlay"></div>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="side-group">OVERVIEW</div>
+    <button class="side-btn active" data-section="dashboard"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Dashboard</button>
+    <button class="side-btn" data-section="analytics"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 15l4-6 4 3 5-7"/></svg>Analytics</button>
+    <div class="side-group">CONTENT</div>
+    <button class="side-btn" data-section="manga"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2V5zm0 16a2 2 0 012-2h13"/></svg>Manga</button>
+    <button class="side-btn" data-section="add"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Add manga</button>
+    <button class="side-btn" data-section="chapters"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5a2 2 0 012-2h13v16H6a2 2 0 00-2 2zm0 0a2 2 0 002 2h13"/></svg>Chapters</button>
+    <button class="side-btn" data-section="spotlight"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg>Spotlight</button>
+    <button class="side-btn" data-section="genres"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12l-8 8-9-9V4h7l10 8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Genres</button>
+    <div class="side-group">COMMUNITY</div>
+    <button class="side-btn" data-section="comments"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a8 8 0 01-8 8H4l2-3a8 8 0 1115-5z"/></svg>Comments</button>
+    <button class="side-btn" data-section="reports"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3L2 20h20L12 3zm0 9v4M12 17v.5"/></svg>Reports</button>
+    <button class="side-btn" data-section="requests"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Requests</button>
+    <div class="side-group">SYSTEM</div>
+    <button class="side-btn" data-section="users"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2 20a7 7 0 0114 0M16 4a3.5 3.5 0 010 7M17 14a7 7 0 015 6"/></svg>Users &amp; Roles</button>
+    <button class="side-btn" data-section="activity"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v5l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Activity log</button>
+    <button class="side-btn" data-section="announce"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l14-5v12L3 13v-2zm0 0v3a2 2 0 002 2h1"/></svg>Announcements</button>
+    <button class="side-btn" data-section="ads"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l14-5v12L3 13v-2zm0 0v3a2 2 0 002 2h1"/><path d="M7 13v4a1 1 0 001 1h2"/></svg>Ads Placement</button>
+    <button class="side-btn" data-section="settings"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 00-2-1.2L14 3h-4l-.5 2.6a7 7 0 00-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 005 12a7 7 0 00.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 002 1.2L10 21h4l.5-2.6a7 7 0 002-1.2l2.4 1 2-3.4-2-1.6A7 7 0 0019 12z"/></svg>Settings</button>
+    <button class="side-btn" data-section="backup"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>Backup &amp; Export</button>
+    <button class="side-btn" id="logoutBtn"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>Log out</button>
+  </aside>
+  <main class="main" id="main">
+    <section id="sec-dashboard">
+      <h2>Dashboard</h2><p class="muted">Overview of the catalogue, live from the database.</p>
+      <div class="stats">
+        <div class="stat"><b id="statManga">–</b><span>Total manga</span></div>
+        <div class="stat"><b id="statChapters">–</b><span>Total chapters</span></div>
+        <div class="stat"><b id="statSpot">–</b><span>Spotlight titles</span></div>
+        <div class="stat"><b id="statUsers">–</b><span>Users</span></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3>Recently added</h3><div id="recentList"></div></div>
+        <div class="card"><h3>Quick actions</h3>
+          <button class="btn btn-red" data-goto="add">Add manga</button>
+          <a href="/" class="btn btn-light" style="display:inline-block;margin-left:8px">View site</a>
+          <p class="muted" style="margin-top:14px">Changes made here are saved to the database and appear on the site immediately.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="sec-analytics" class="hidden">
+      <h2>Analytics</h2><p class="muted">Catalogue totals and top-rated titles.</p>
+      <div class="card"><h3>Top manga by score</h3><div id="topList"></div></div>
+    </section>
+
+    <section id="sec-manga" class="hidden">
+      <h2>Manga</h2><p class="muted">All titles in the catalogue. Search filters this list instantly. Moderators can edit and delete only their own uploads.</p>
+      <div class="row" style="align-items:flex-end"><div><label>Search manga</label><div class="searchbar"><input id="mangaSearch" type="text" placeholder="Search manga..." autocomplete="off"><button id="mangaSearchBtn" aria-label="Search manga" title="Search"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button></div></div>
+      <div style="flex:0 0 auto"><button class="btn btn-ghost" id="checkImagesBtn">Check images</button></div></div>
+      <div id="checkResult"></div>
+      <div class="manga-grid" id="mangaGrid"></div>
+      <p class="muted" id="mangaEmpty" style="display:none;margin-top:14px">No manga found.</p>
+    </section>
+
+    <section id="sec-add" class="hidden">
+      <h2 id="addTitle">Add manga</h2><p class="muted">Add a title manually, or search MyAnimeList through the Jikan API and import it. Cover images are uploaded directly — there is no image link field.</p>
+      <div class="tabs">
+        <button class="tab active" data-tab="manual">Manual add</button>
+        <button class="tab" data-tab="jikan">Import</button>
+      </div>
+      <div id="tab-manual" class="card"><form id="addForm">
+        <input type="hidden" id="editId">
+        <div class="row"><div><label>Title</label><input type="text" id="fTitle" required></div>
+        <div><label>Type</label><select id="fType"><option>Manhwa</option><option>Manga</option><option>Manhua</option><option>Webtoon</option></select></div></div>
+        <div class="row"><div><label>Status</label><select id="fStatus"><option>Ongoing</option><option>Hiatus</option><option>Complete</option></select></div>
+        <div><label>Score</label><input type="number" id="fScore" step="0.1" min="0" max="10"></div></div>
+        <div class="row"><div><label>Genres (comma separated)</label><input type="text" id="fTags"></div>
+        <div><label>Year</label><input type="number" id="fYear" min="1900" max="2100"></div></div>
+        <div class="row"><div><label>Author name</label><input type="text" id="fAuthor"></div>
+        <div><label>Artist name</label><input type="text" id="fArtist"></div></div>
+        <div class="row"><div><label>Content rating</label><select id="fRating"><option value="">—</option><option>All Ages</option><option>13+</option><option>16+</option><option>18+</option></select></div>
+        <div><label>Translator name</label><input type="text" id="fTranslator"></div></div>
+        <div class="row"><div><label>Studio name</label><input type="text" id="fStudio"></div>
+        <div><label>Start year</label><input type="number" id="fStartYear" min="1900" max="2100"></div></div>
+        <div class="row"><div><label>Alternative title — English</label><input type="text" id="fAltEn"></div>
+        <div><label>Alternative title — Korean</label><input type="text" id="fAltKo"></div></div>
+        <div class="row"><div><label>Alternative title — Japanese</label><input type="text" id="fAltJa"></div>
+        <div><label>Alternative title — Chinese</label><input type="text" id="fAltZh"></div></div>
+        <label>Cover image — upload only</label>
+        <div class="dropzone" id="coverDrop"><span class="dz-icon">↑</span><b>Drop a cover image here or browse files</b><p>Uploaded to image hosting automatically when saved.</p><input type="file" id="fCoverFile" accept="image/*" class="hidden"></div>
+        <div class="thumbs" id="coverThumbs"></div>
+        <div class="hint" id="coverUrlHint"></div>
+        <label>Wide banner image — upload only (homepage hero background for this title)</label>
+        <div class="dropzone" id="bannerDrop"><span class="dz-icon">↑</span><b>Drop a wide banner image here or browse files</b><p>Uploaded to image hosting automatically when saved.</p><input type="file" id="fBannerFile" accept="image/*" class="hidden"></div>
+        <div class="thumbs" id="bannerThumbs"></div>
+        <div class="hint" id="bannerUrlHint"></div>
+        <label>Description</label><textarea id="fDesc" rows="3"></textarea>
+        <div class="row"><div><label>Meta title (SEO)</label><input type="text" id="fMetaTitle"></div>
+        <div><label>Meta description (SEO)</label><input type="text" id="fMetaDesc"></div></div>
+        <button class="btn btn-light" type="submit" id="saveMangaBtn" style="margin-top:16px">Save manga</button>
+        <button class="btn btn-ghost" type="button" id="cancelEditBtn" style="margin-top:16px;display:none">Cancel edit</button>
+      </form></div>
+      <div id="tab-jikan" class="card hidden">
+        <div class="tabs">
+          <button class="tab active" data-source="jikan">Jikan (MAL)</button>
+          <button class="tab" data-source="mangadex">MangaDex</button>
+          <button class="tab" data-source="anilist">AniList</button>
+        </div>
+        <div class="tabs">
+          <button class="tab active" data-jmode="title">Search by title</button>
+          <button class="tab" data-jmode="id">Search by ID</button>
+        </div>
+        <div class="row"><div><label id="jikanLabel">Title</label><input type="text" id="jikanQ"></div>
+        <div style="flex:0 0 auto;align-self:flex-end"><button class="btn btn-light" id="jikanBtn">Search</button></div></div>
+        <div class="hint" id="jikanHint">Title search: try a manga name. ID search: try a MyAnimeList numeric ID, for example 1.</div>
+        <div id="jikanResults"></div>
+      </div>
+    </section>
+
+    <section id="sec-chapters" class="hidden">
+      <h2>Chapters / Episodes</h2><p class="muted">Pick a title, then add, reorder or delete an episode. Moderators can delete only their own uploads.</p>
+      <select id="chapterSelect" style="max-width:420px"></select>
+      <div style="margin-top:12px"><label>Search manga to add a chapter to</label><div class="searchbar" style="max-width:420px"><input id="chapterMangaSearch" type="text" placeholder="Search manga..." autocomplete="off"><button id="chapterMangaSearchBtn" aria-label="Search manga" title="Search"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button></div><div id="chapterMangaResults" class="ch-results"></div><p class="hint" id="chapterPickedHint"></p></div>
+      <div class="card table-wrap" style="padding:6px 18px;margin-top:14px"><table>
+        <thead><tr><th>Chapter</th><th>Pages</th><th>Action</th></tr></thead>
+        <tbody id="chapterRows"></tbody>
+      </table></div>
+      <div class="card" style="margin-top:14px"><h3>Add episode</h3><form id="epForm">
+        <div class="row"><div><label>Episode / Chapter number</label><input type="number" id="epNo" min="1" required></div><div><label>Language (flag shown on the chapter)</label><select id="epLang"><option value="en">English</option><option value="bn">Bangla</option><option value="hi">Hindi</option><option value="ko">Korean</option><option value="ja">Japanese</option><option value="zh">Chinese</option></select></div></div>
+        <label>Page images — upload only</label>
+        <div class="dropzone" id="epDrop"><span class="dz-icon">↑</span><b>Drop page images here or browse files</b><p>Select many images at once or drop them here — they stay in selection order. Drag the thumbnails below to reorder, or remove any page with ×, before saving.</p><input type="file" id="epFiles" accept="image/*" multiple class="hidden"></div>
+        <div class="thumbs" id="epThumbs"></div>
+        <button class="btn btn-light" type="submit" style="margin-top:14px">Add episode</button>
+      </form></div>
+      <div class="card" style="margin-top:14px"><h3>Reorder chapter pages</h3><p class="muted">Open a chapter, then move its pages up or down. Changes save immediately.</p>
+      <select id="reorderChapterSelect" style="max-width:420px"></select>
+      <div id="pageList" style="margin-top:12px"></div></div>
+    </section>
+
+    <section id="sec-spotlight" class="hidden">
+      <h2>Spotlight</h2><p class="muted">The titles shown in the homepage hero slider (maximum 5).</p>
+      <div class="card table-wrap" style="padding:6px 18px"><table>
+        <thead><tr><th>Title</th><th>Banner</th><th>Position</th><th>Action</th></tr></thead>
+        <tbody id="spotRows"></tbody>
+      </table></div>
+      <div class="card" style="margin-top:14px"><h3>Add to Spotlight</h3><div class="row"><div><select id="spotSelect"></select></div>
+      <div style="flex:0 0 auto;align-self:flex-end"><button class="btn btn-light" id="spotAddBtn">Add</button></div></div>
+      <label style="margin-top:14px">Wide banner image for this title — upload only (shown behind the cover in the homepage hero)</label>
+      <div class="dropzone" id="spotBannerDrop"><span class="dz-icon">↑</span><b>Drop a wide banner image here or browse files</b><p>Uploaded to image hosting when you click Add.</p><input type="file" id="spotBannerFile" accept="image/*" class="hidden"></div>
+      <div class="thumbs" id="spotBannerThumbs"></div></div>
+    </section>
+
+    <section id="sec-genres" class="hidden">
+      <h2>Genres</h2><p class="muted">Genres used across the catalogue.</p>
+      <div class="card"><div id="genreList" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      <form id="genreForm" class="row" style="margin-top:16px"><div><label>Genre name</label><input type="text" id="genreInput" required></div>
+      <div style="flex:0 0 auto;align-self:flex-end"><button class="btn btn-light" type="submit">Add genre</button></div></form></div>
+    </section>
+
+    <section id="sec-comments" class="hidden">
+      <h2>Comment moderation</h2><p class="muted">Approve, hide or delete reader comments.</p>
+      <div class="card table-wrap" style="padding:6px 18px"><table>
+        <thead><tr><th>User</th><th>Comment</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="commentRows"></tbody>
+      </table></div>
+    </section>
+
+    <section id="sec-reports" class="hidden">
+      <h2>Reports</h2><p class="muted">Broken chapter, wrong image or wrong info reports from readers.</p>
+      <div class="card table-wrap" style="padding:6px 18px"><table>
+        <thead><tr><th>Reported by</th><th>Issue</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody id="reportRows"></tbody>
+      </table></div>
+    </section>
+
+    <section id="sec-requests" class="hidden">
+      <h2>Manga requests</h2><p class="muted">Titles readers asked for. Approve or reject each request. Approved requests are marked approved for follow-up.</p>
+      <div class="card table-wrap" style="padding:6px 18px"><table>
+        <thead><tr><th>Requested title</th><th>By</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody id="requestRows"></tbody>
+      </table></div>
+    </section>
+
+    <section id="sec-users" class="hidden">
+      <h2>Users &amp; Roles</h2><p class="muted">There is only one Admin with full access. Moderators can upload and manage only their own uploads — they cannot delete others' uploads, change site settings, or change roles. Normal users can only read.</p>
+      <div class="card table-wrap" style="padding:6px 18px"><table>
+        <thead><tr><th>User</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="userRows"></tbody>
+      </table></div>
+      <div class="card" style="margin-top:14px"><h3>Create user</h3><form id="roleForm" class="row">
+        <div><label>Email</label><input type="email" id="newUserEmail" required></div>
+        <div><label>Password</label><input type="password" id="newUserPass" required></div>
+        <div><label>Role</label><select id="newUserRole"><option value="moderator">Moderator</option><option value="user">User</option></select></div>
+        <div style="flex:0 0 auto;align-self:flex-end"><button class="btn btn-light" type="submit">Create user</button></div>
+      </form></div>
+    </section>
+
+    <section id="sec-activity" class="hidden">
+      <h2>Activity log</h2><p class="muted">Who uploaded, edited or deleted what — newest first.</p>
+      <div class="card"><div id="logList"></div></div>
+    </section>
+
+    <section id="sec-announce" class="hidden">
+      <h2>Announcements</h2><p class="muted">A notice shown at the top of the site.</p>
+      <div class="card"><label>Announcement text</label><input type="text" id="annInput">
+      <button class="btn btn-light" style="margin-top:14px" id="annBtn">Save announcement</button>
+      <div id="annPreview" class="hint" style="margin-top:10px"></div></div>
+    </section>
+
+    <section id="sec-ads" class="hidden">
+      <h2>Ads Placement</h2><p class="muted">Configure ad slots for the site. A slot shows its ad code only when it is enabled and has code; otherwise it renders nothing. All slots are disabled by default.</p>
+      <div id="adsList"></div>
+      <button class="btn btn-light" id="adsSaveBtn" style="margin-top:16px">Save all ad slots</button>
+      <p class="hint">Only admins can save ad code. The code is inserted as HTML on the site because ad networks require it.</p>
+    </section>
+
+    <section id="sec-settings" class="hidden">
+      <h2>Settings</h2><p class="muted">Site identity, footer, social links and image hosting configuration.</p>
+      <div class="card">
+        <label>Site logo — upload only</label>
+        <div class="dropzone" id="logoDrop"><span class="dz-icon">↑</span><b>Drop a logo image here or browse files</b><p>The logo is uploaded to image hosting and saved in Settings.</p><input type="file" id="logoFile" accept="image/*" class="hidden"></div>
+        <div class="thumbs" id="logoThumbs"></div>
+        <div class="row"><div><label>Site name</label><input type="text" id="setName"></div>
+        <div><label>Footer text</label><input type="text" id="setFooter"></div></div>
+        <label>Social links — one box per platform (leave a box blank to hide that link in the footer)</label>
+        <div class="row"><div><label>Telegram</label><input type="url" id="socTelegram" placeholder="https://t.me/..."></div>
+        <div><label>Facebook</label><input type="url" id="socFacebook" placeholder="https://facebook.com/..."></div></div>
+        <div class="row"><div><label>Instagram</label><input type="url" id="socInstagram" placeholder="https://instagram.com/..."></div>
+        <div><label>X / Twitter</label><input type="url" id="socX" placeholder="https://x.com/..."></div></div>
+        <div class="row"><div><label>YouTube</label><input type="url" id="socYouTube" placeholder="https://youtube.com/..."></div>
+        <div><label>Discord</label><input type="url" id="socDiscord" placeholder="https://discord.gg/..."></div></div>
+        <label>ImgBB API key</label><input type="password" id="imgbbKey">
+        <div class="hint" id="imgbbStatus"></div>
+        <div class="toggle"><span>Maintenance mode<small>Show a maintenance page to visitors</small></span><label class="switch"><input type="checkbox" id="maintToggle"><span class="track"></span></label></div>
+        <div class="toggle"><span>Show adult content<small>Show mature titles in browse</small></span><label class="switch"><input type="checkbox" id="adultToggle"><span class="track"></span></label></div>
+        <button class="btn btn-light" id="saveSettings" style="margin-top:14px">Save settings</button>
+      </div>
+    </section>
+
+    <section id="sec-backup" class="hidden">
+      <h2>Backup &amp; Export</h2><p class="muted">Download the current catalogue as a JSON file.</p>
+      <div class="card">
+        <button class="btn btn-light" id="exportBtn">Export catalogue as JSON</button>
+        <div class="hint" style="margin-top:12px">Export contains the titles currently in the database.</div>
+      </div>
+      <div class="card" style="margin-top:14px"><h3>Import catalogue JSON</h3><p class="muted">Restore a previously exported catalogue file. Titles that already exist are skipped; new titles are added with their covers, banners and descriptions. Chapters are not part of the export file.</p>
+        <input type="file" id="restoreFile" accept="application/json" class="hidden">
+        <button class="btn btn-light" id="restoreBtn">Choose catalogue file to import</button>
+        <div class="hint" id="restoreResult"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+
+
+<nav class="bottomnav" id="bottomnav">
+  <button data-section="dashboard" class="active"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Home</button>
+  <button data-section="manga"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2V5zm0 16a2 2 0 012-2h13"/></svg>Manga</button>
+  <button data-section="add"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Add</button>
+  <button data-section="chapters"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5a2 2 0 012-2h13v16H6a2 2 0 00-2 2zm0 0a2 2 0 002 2h13"/></svg>Chapters</button>
+  <button id="moreBtn"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>More</button>
+</nav>
+
+<div id="toast" class="toast"></div>
+<script>
+var manga = [], currentUser = null, coverFile = null, coverUrl = "", bannerFile = null, episodeFiles = [], logoUrl = "", chapterData = [], lastSocial = {}, spotNewBanner = "";
+var SECTIONS = ['dashboard','analytics','manga','add','chapters','spotlight','genres','comments','reports','requests','users','activity','announce','ads','settings','backup'];
+function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(function(){t.style.display='none'},3400)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+async function api(path, opts){
+  opts = opts || {};
+  opts.signal = opts.signal || AbortSignal.timeout(30000);
+  var res;
+  try { res = await fetch(path, opts); }
+  catch (e) { throw new Error(e && e.name === 'AbortError' ? 'Request timed out. Please try again.' : (e.message || 'Request failed.')); }
+  if (res.status === 401) { location.href = '/admin/login/'; throw new Error('Session expired. Please log in again.'); }
+  var data = await res.json().catch(function(){ return {}; });
+  if (!res.ok) throw new Error(data.error || 'Request failed.');
+  return data;
+}
+// Delete buttons — direct binding at render time (the same pattern every
+// other working button in this panel uses: Edit, Spotlight-delete,
+// Genre-delete, etc.). A previous document-delegated listener never
+// produced a dialog in live browser testing, so it is removed.
+// Confirmation uses a custom in-page modal instead of native confirm(),
+// which is suppressed in some browsers/automation environments.
+var delPending = null;
+function delModal(){
+  var m = document.getElementById('delModal');
+  if (m) return m;
+  m = document.createElement('div'); m.id = 'delModal';
+  m.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;align-items:center;justify-content:center;padding:20px';
+  m.innerHTML = '<div style="background:#1e1e26;border:1px solid #3a3a44;padding:20px;border-radius:14px;max-width:360px;width:100%;color:#fff"><p id="delModalMsg" style="margin:0 0 18px;line-height:1.5"></p><div style="display:flex;gap:10px;justify-content:flex-end"><button id="delModalCancel" class="act">Cancel</button><button id="delModalOk" class="act" style="background:#b3261e;color:#fff;border-color:#b3261e">Delete</button></div></div>';
+  document.body.appendChild(m);
+  document.getElementById('delModalCancel').addEventListener('click', function(){ m.style.display = 'none'; delPending = null; });
+  document.getElementById('delModalOk').addEventListener('click', async function(){
+    var fn = delPending; delPending = null; m.style.display = 'none';
+    if (fn) { try { await fn(); } catch(e){ toast(e.message); } }
+  });
+  return m;
+}
+function askDelete(msg, fn){
+  var m = delModal();
+  document.getElementById('delModalMsg').textContent = msg;
+  delPending = fn; m.style.display = 'flex';
+}
+async function delManga(id, btn){
+  if (btn) btn.disabled = true;
+  try { await api('/api/admin/manga/' + id, { method: 'DELETE' }); toast('Manga deleted.'); loadManga(); }
+  catch(err){ toast(err.message); if (btn) btn.disabled = false; }
+}
+async function delChapter(id, btn){
+  if (btn) btn.disabled = true;
+  try { await api('/api/admin/chapters/' + id, { method: 'DELETE' }); toast('Chapter deleted.'); loadChapters(); loadManga(); }
+  catch(err){ toast(err.message); if (btn) btn.disabled = false; }
+}
+function showSection(name){
+  document.querySelectorAll('.side-btn[data-section]').forEach(function(b){b.classList.toggle('active',b.dataset.section===name)});
+  document.querySelectorAll('#bottomnav button[data-section]').forEach(function(b){b.classList.toggle('active',b.dataset.section===name)});
+  SECTIONS.forEach(function(s){var el=document.getElementById('sec-'+s);if(el)el.classList.toggle('hidden',s!==name)});
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.side-btn[data-section]').forEach(function(b){b.addEventListener('click',function(){showSection(b.dataset.section)})});
+document.querySelectorAll('#bottomnav button[data-section]').forEach(function(b){b.addEventListener('click',function(){showSection(b.dataset.section)})});
+document.querySelectorAll('[data-goto]').forEach(function(b){b.addEventListener('click',function(){showSection(b.dataset.goto)})});
+function openDrawer(){document.getElementById('sidebar').classList.add('open');document.getElementById('overlay').classList.add('show')}
+function closeDrawer(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show')}
+document.getElementById('moreBtn').addEventListener('click',openDrawer);
+document.getElementById('menuBtn').addEventListener('click',openDrawer);
+document.getElementById('overlay').addEventListener('click',closeDrawer);
+document.getElementById('logoutBtn').addEventListener('click',async function(){
+  try { await fetch('/api/admin/logout', { method: 'POST' }); } catch(e) {}
+  location.href = '/admin/login/';
+});
+function setupDropzone(dropId, inputId, thumbsId, onFiles){
+  var drop = document.getElementById(dropId), input = document.getElementById(inputId), thumbs = document.getElementById(thumbsId);
+  drop.addEventListener('click', function(){ input.click(); });
+  ['dragenter','dragover'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('over'); }); });
+  ['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('over'); }); });
+  drop.addEventListener('drop', function(e){
+    var files = Array.prototype.slice.call(e.dataTransfer.files || []);
+    if (!files.length) return;
+    if (input.multiple) { input.files = e.dataTransfer.files; } else { input.files = e.dataTransfer.files; }
+    showThumbs(thumbs, files); onFiles(files);
+  });
+  input.addEventListener('change', function(){
+    var files = Array.prototype.slice.call(input.files || []);
+    showThumbs(thumbs, files); onFiles(files);
+  });
+}
+function showThumbs(el, files){
+  el.innerHTML = files.map(function(f){ return '<img src="' + esc(URL.createObjectURL(f)) + '" alt="">'; }).join('');
+}
+async function uploadFile(file){
+  var fd = new FormData(); fd.append('image', file);
+  var res;
+  try { res = await fetch('/api/admin/upload', { method: 'POST', body: fd, signal: AbortSignal.timeout(30000) }); }
+  catch (e) { throw new Error(e && e.name === 'AbortError' ? 'Upload timed out. Please try again.' : (e.message || 'Upload failed.')); }
+  if (res.status === 401) { location.href = '/admin/login/'; throw new Error('Session expired. Please log in again.'); }
+  var data = await res.json().catch(function(){ return {}; });
+  if (!res.ok) throw new Error(data.error || 'Upload failed.');
+  return data.url;
+}
+function canEditRow(ownerId){
+  if (!currentUser) return false;
+  if (currentUser.role === 'admin') return true;
+  if (currentUser.role === 'moderator') return ownerId === currentUser.id;
+  return false;
+}
+function renderManga(list){
+  var grid = document.getElementById('mangaGrid');
+  var empty = document.getElementById('mangaEmpty');
+  if (!list.length) { grid.innerHTML = ''; empty.style.display = 'block'; }
+  else {
+    empty.style.display = 'none';
+    grid.innerHTML = list.map(function(m){
+      var actions = canEditRow(m.owner_id)
+        ? '<div class="m-actions"><button class="act" data-edit="'+m.id+'">Edit</button><button class="act" data-del="'+m.id+'">Delete</button></div>'
+        : '';
+      return '<article class="manga-card"><img class="cover" src="'+esc(m.cover)+'" alt="" loading="lazy"><div class="m-title">'+esc(m.title)+'</div>'+actions+'</article>';
+    }).join('');
+  }
+  document.querySelectorAll('[data-edit]').forEach(function(btn){ btn.addEventListener('click', function(){ startEdit(Number(btn.dataset.edit)); }); });
+  document.querySelectorAll('[data-del]').forEach(function(btn){ btn.addEventListener('click', function(){ askDelete('Delete this manga and all of its chapters?', function(){ return delManga(btn.dataset.del, btn); }); }); });
+}
+function renderRecent(list){
+  document.getElementById('recentList').innerHTML = list.slice(0,6).map(function(m){
+    return '<div class="mini" style="padding:8px 0;border-bottom:1px solid #1e1e26"><img src="'+esc(m.cover)+'" alt=""><div><b>'+esc(m.title)+'</b><br><span class="muted">'+esc(m.status||'')+' · '+(m.chapters||0)+' chapters</span></div></div>';
+  }).join('');
+}
+function renderTop(top){
+  var max = top.length ? (top[0].score || 1) : 1;
+  document.getElementById('topList').innerHTML = top.map(function(m){
+    return '<div class="bar-row"><span style="min-width:120px;flex:0 1 160px">'+esc(m.title)+'</span><div class="bar"><div class="fill" style="width:'+Math.round((m.score||0)/max*100)+'%"></div></div><b>'+(m.score||'–')+'</b></div>';
+  }).join('');
+}
+async function loadManga(){
+  try {
+    var d = await api('/api/admin/manga?limit=200');
+    manga = d.items || [];
+    renderManga(manga); renderRecent(manga.slice().reverse());
+    var sel = document.getElementById('chapterSelect');
+    sel.innerHTML = manga.map(function(m){ return '<option value="'+m.id+'">'+esc(m.title)+'</option>'; }).join('');
+    var spotSel = document.getElementById('spotSelect');
+    spotSel.innerHTML = manga.map(function(m){ return '<option value="'+m.id+'">'+esc(m.title)+'</option>'; }).join('');
+    loadChapters();
+  } catch(e){ toast(e.message); }
+}
+async function searchManga(){
+  var q = document.getElementById('mangaSearch').value.trim();
+  try {
+    var d = await api('/api/admin/manga?limit=200' + (q ? '&q=' + encodeURIComponent(q) : ''));
+    renderManga(d.items || []);
+  } catch(e){ toast(e.message); }
+}
+var mangaSearchTimer = null;
+document.getElementById('mangaSearch').addEventListener('input', function(){
+  clearTimeout(mangaSearchTimer);
+  mangaSearchTimer = setTimeout(searchManga, 300);
+});
+document.getElementById('mangaSearch').addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); searchManga(); } });
+document.getElementById('mangaSearchBtn').addEventListener('click', searchManga);
+async function loadAnalytics(){
+  try {
+    var d = await api('/api/admin/analytics');
+    document.getElementById('statManga').textContent = d.manga;
+    document.getElementById('statChapters').textContent = d.chapters;
+    document.getElementById('statUsers').textContent = d.users;
+    renderTop(d.top || []);
+  } catch(e){}
+}
+function spotBannerOf(m){ return m.bannerFallback || m.banner || ''; }
+function spotItemsPayload(items){
+  return { items: items.map(function(m){ return { id: m.id, banner: spotBannerOf(m) }; }) };
+}
+async function saveSpotlight(items){
+  await api('/api/admin/spotlight', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(spotItemsPayload(items)) });
+}
+async function loadSpotlight(){
+  try {
+    var d = await api('/api/admin/spotlight');
+    document.getElementById('statSpot').textContent = (d.items || []).length;
+    var items = d.items || [];
+    document.getElementById('spotRows').innerHTML = items.map(function(m, i){
+      var b = spotBannerOf(m);
+      var thumb = b ? '<img src="'+esc(b)+'" alt="Banner">' : '<span class="muted">No banner</span>';
+      return '<tr><td data-label="Title"><div class="mini"><img src="'+esc(m.cover)+'" alt=""><b>'+esc(m.title)+'</b></div></td>'
+      +'<td data-label="Banner"><div class="spot-banner">'+thumb+'<label class="act" style="cursor:pointer">Upload banner<input type="file" accept="image/*" class="hidden spot-banner-file" data-spot-id="'+m.id+'"></label></div></td>'
+      +'<td data-label="Position">'+(i+1)+'</td>'
+      +'<td data-label="Action"><button class="act" data-spot-del="'+m.id+'">Remove</button></td></tr>';
+    }).join('') || '<tr><td data-label="Result" colspan="4">No Spotlight titles yet.</td></tr>';
+    document.querySelectorAll('.spot-banner-file').forEach(function(input){
+      input.addEventListener('change', async function(){
+        if (!input.files[0]) return;
+        try {
+          toast('Uploading banner…');
+          var url = await uploadFile(input.files[0]);
+          var cur = await api('/api/admin/spotlight');
+          var list = (cur.items || []).map(function(x){
+            if (String(x.id) === String(input.dataset.spotId)) return { id: x.id, bannerFallback: url, banner: url };
+            return x;
+          });
+          await saveSpotlight(list);
+          toast('Banner saved. It now shows in the homepage hero.');
+          loadSpotlight();
+        } catch(e){ toast(e.message); }
+      });
+    });
+    document.querySelectorAll('[data-spot-del]').forEach(function(btn){ btn.addEventListener('click', async function(){
+      try {
+        var cur = await api('/api/admin/spotlight');
+        var rest = (cur.items || []).filter(function(x){ return String(x.id) !== btn.dataset.spotDel; });
+        await saveSpotlight(rest);
+        toast('Spotlight updated.'); loadSpotlight();
+      } catch(e){ toast(e.message); }
+    }); });
+  } catch(e){}
+}
+async function loadChapters(){
+  var mangaId = document.getElementById('chapterSelect').value;
+  if (!mangaId) return;
+  try {
+    var d = await api('/api/admin/chapters?manga_id=' + mangaId);
+    chapterData = d.items || [];
+    var selManga = manga.find(function(x){ return String(x.id) === String(document.getElementById('chapterSelect').value); });
+    var titleHref = selManga ? '/title/' + selManga.slug + '/' : '/';
+    document.getElementById('chapterRows').innerHTML = chapterData.map(function(c){
+      return '<tr><td data-label="Chapter"><b>Chapter '+c.n+'</b></td><td data-label="Pages">'+c.pages.length+' pages</td>'
+      +'<td data-label="Action"><a class="act" href="'+titleHref+'">Open title page</a> '
+      +'<button class="act" data-ch-del="'+c.id+'">Delete</button></td></tr>';
+    }).join('') || '<tr><td data-label="Result" colspan="3">No chapters yet.</td></tr>';
+    document.querySelectorAll('[data-ch-del]').forEach(function(btn){ btn.addEventListener('click', function(){ askDelete('Delete this chapter and all of its pages?', function(){ return delChapter(btn.dataset.chDel, btn); }); }); });
+    var rsel = document.getElementById('reorderChapterSelect');
+    rsel.innerHTML = chapterData.map(function(c){ return '<option value="'+c.id+'">Chapter '+c.n+'</option>'; }).join('');
+    renderPageList();
+  } catch(e){ toast(e.message); }
+}
+function renderPageList(){
+  var cid = document.getElementById('reorderChapterSelect').value;
+  var ch = chapterData.find(function(c){ return String(c.id) === String(cid); });
+  var box = document.getElementById('pageList');
+  if (!ch) { box.innerHTML = '<p class="muted">No chapter selected.</p>'; return; }
+  box.innerHTML = ch.pages.map(function(p, i){
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1e1e26"><img src="'+esc(p.src)+'" style="width:44px;height:60px;object-fit:cover;border-radius:6px" alt="">'
+    + '<span style="flex:1">Page '+(i+1)+'</span>'
+    + '<button class="act" data-page-up="'+p.id+'" '+(i===0?'disabled':'')+'>Up</button>'
+    + '<button class="act" data-page-down="'+p.id+'" '+(i===ch.pages.length-1?'disabled':'')+'>Down</button></div>';
+  }).join('');
+  box.querySelectorAll('[data-page-up]').forEach(function(btn){ btn.addEventListener('click', function(){ movePage(Number(btn.dataset.pageUp), -1); }); });
+  box.querySelectorAll('[data-page-down]').forEach(function(btn){ btn.addEventListener('click', function(){ movePage(Number(btn.dataset.pageDown), 1); }); });
+}
+async function movePage(pageId, dir){
+  var cid = document.getElementById('reorderChapterSelect').value;
+  var ch = chapterData.find(function(c){ return String(c.id) === String(cid); });
+  if (!ch) return;
+  var idx = ch.pages.findIndex(function(p){ return p.id === pageId; });
+  var j = idx + dir;
+  if (idx < 0 || j < 0 || j >= ch.pages.length) return;
+  var tmp = ch.pages[idx]; ch.pages[idx] = ch.pages[j]; ch.pages[j] = tmp;
+  try {
+    await api('/api/admin/chapters/' + cid + '/reorder', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ order: ch.pages.map(function(p){ return p.id; }) }) });
+    renderPageList(); toast('Page order saved.');
+  } catch(e){ toast(e.message); loadChapters(); }
+}
+document.getElementById('chapterSelect').addEventListener('change', loadChapters);
+document.getElementById('reorderChapterSelect').addEventListener('change', renderPageList);
+function startEdit(id){
+  var m = manga.find(function(x){ return x.id === id; });
+  if (!m) return;
+  document.getElementById('editId').value = id;
+  document.getElementById('fTitle').value = m.title;
+  document.getElementById('fType').value = m.type || 'Manhwa';
+  document.getElementById('fStatus').value = m.status || 'Ongoing';
+  document.getElementById('fScore').value = m.score || '';
+  document.getElementById('fTags').value = (m.tags || []).join(', ');
+  document.getElementById('fYear').value = m.year || '';
+  document.getElementById('fAuthor').value = m.author || '';
+  document.getElementById('fArtist').value = m.artist || '';
+  document.getElementById('fRating').value = m.content_rating || '';
+  document.getElementById('fTranslator').value = m.translator || '';
+  document.getElementById('fStudio').value = m.studio || '';
+  document.getElementById('fStartYear').value = m.start_year || m.year || '';
+  var alt = (m.alt_titles && typeof m.alt_titles === 'object') ? m.alt_titles : {};
+  document.getElementById('fAltEn').value = (alt.en || []).join(', ');
+  document.getElementById('fAltKo').value = (alt.ko || []).join(', ');
+  document.getElementById('fAltJa').value = (alt.ja || []).join(', ');
+  document.getElementById('fAltZh').value = (alt.zh || []).join(', ');
+  document.getElementById('fDesc').value = m.description || '';
+  document.getElementById('fMetaTitle').value = m.meta_title || '';
+  document.getElementById('fMetaDesc').value = m.meta_description || '';
+  document.getElementById('coverUrlHint').textContent = 'Current cover is kept unless you upload a new one.';
+  var bb = m.bannerFallback || m.banner || '';
+  document.getElementById('bannerUrlHint').textContent = bb ? 'Current banner is kept unless you upload a new one.' : '';
+  if (bb) document.getElementById('bannerThumbs').innerHTML = '<img src="' + esc(bb) + '" alt="">';
+  document.getElementById('addTitle').textContent = 'Edit manga';
+  document.getElementById('saveMangaBtn').textContent = 'Update manga';
+  document.getElementById('cancelEditBtn').style.display = 'inline-block';
+  showSection('add');
+}
+document.getElementById('cancelEditBtn').addEventListener('click', function(){
+  document.getElementById('editId').value = '';
+  document.getElementById('addForm').reset();
+  document.getElementById('addTitle').textContent = 'Add manga';
+  document.getElementById('saveMangaBtn').textContent = 'Save manga';
+  this.style.display = 'none';
+});
+setupDropzone('coverDrop', 'fCoverFile', 'coverThumbs', function(files){ coverFile = files[0] || null; });
+setupDropzone('bannerDrop', 'fBannerFile', 'bannerThumbs', function(files){ bannerFile = files[0] || null; });
+var epDragIndex = -1;
+function renderEpPages(){
+  var box = document.getElementById('epThumbs');
+  box.innerHTML = episodeFiles.map(function(en, i){
+    var st = en.status === 'uploading' ? 'Uploading…' : en.status === 'failed' ? 'Failed — retry on save' : en.status === 'done' ? 'Uploaded' : 'Ready';
+    return '<div class="ep-page" draggable="true" data-ep-index="'+i+'"><img src="'+esc(en.thumb)+'" alt="Page '+(i+1)+'"><button type="button" class="pg-remove" data-ep-remove="'+i+'" title="Remove page">×</button><span class="pg-label">Page '+(i+1)+'</span><span class="pg-status">'+st+'</span></div>';
+  }).join('');
+  box.querySelectorAll('[data-ep-remove]').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      episodeFiles.splice(Number(btn.dataset.epRemove), 1);
+      renderEpPages();
+    });
+  });
+  box.querySelectorAll('.ep-page').forEach(function(el){
+    el.addEventListener('dragstart', function(e){
+      epDragIndex = Number(el.dataset.epIndex);
+      el.classList.add('dragging');
+      try { e.dataTransfer.setData('text/plain', String(epDragIndex)); } catch(err) {}
+    });
+    el.addEventListener('dragend', function(){ el.classList.remove('dragging'); epDragIndex = -1; });
+    el.addEventListener('dragover', function(e){ e.preventDefault(); el.classList.add('drag-over'); });
+    el.addEventListener('dragleave', function(){ el.classList.remove('drag-over'); });
+    el.addEventListener('drop', function(e){
+      e.preventDefault(); el.classList.remove('drag-over');
+      var from = epDragIndex; if (from < 0) from = Number(e.dataTransfer.getData('text/plain'));
+      var to = Number(el.dataset.epIndex);
+      if (isNaN(from) || from === to) return;
+      var moved = episodeFiles.splice(from, 1)[0];
+      episodeFiles.splice(to, 0, moved);
+      renderEpPages();
+      toast('Pages reordered.');
+    });
+  });
+}
+setupDropzone('epDrop', 'epFiles', 'epThumbs', function(files){
+  files.forEach(function(f){
+    episodeFiles.push({ file: f, thumb: URL.createObjectURL(f), url: null, status: 'ready' });
+  });
+  renderEpPages();
+});
+setupDropzone('logoDrop', 'logoFile', 'logoThumbs', async function(files){
+  if (!files[0]) return;
+  try { logoUrl = await uploadFile(files[0]); toast('Logo uploaded. Save Settings to apply it.'); } catch(e){ toast(e.message); }
+});
+document.getElementById('addForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  var btn = document.getElementById('saveMangaBtn'); btn.disabled = true;
+  try {
+    var url = coverUrl;
+    if (coverFile) { toast('Uploading cover…'); url = await uploadFile(coverFile); }
+    var bannerUrl = '';
+    if (bannerFile) { toast('Uploading banner…'); bannerUrl = await uploadFile(bannerFile); }
+    var payload = {
+      title: document.getElementById('fTitle').value.trim(),
+      type: document.getElementById('fType').value,
+      status: document.getElementById('fStatus').value,
+      score: Number(document.getElementById('fScore').value) || 0,
+      tags: document.getElementById('fTags').value,
+      year: Number(document.getElementById('fYear').value) || 2020,
+      author: document.getElementById('fAuthor').value.trim(),
+      artist: document.getElementById('fArtist').value.trim(),
+      content_rating: document.getElementById('fRating').value,
+      content_type: document.getElementById('fType').value,
+      translator: document.getElementById('fTranslator').value.trim(),
+      studio: document.getElementById('fStudio').value.trim(),
+      start_year: document.getElementById('fStartYear').value ? Number(document.getElementById('fStartYear').value) : null,
+      rating: document.getElementById('fScore').value ? Number(document.getElementById('fScore').value) : null,
+      alt_titles: (function(){ var o = {}; var en = document.getElementById('fAltEn').value.split(',').map(function(s){return s.trim()}).filter(Boolean); var ko = document.getElementById('fAltKo').value.split(',').map(function(s){return s.trim()}).filter(Boolean); var ja = document.getElementById('fAltJa').value.split(',').map(function(s){return s.trim()}).filter(Boolean); var zh = document.getElementById('fAltZh').value.split(',').map(function(s){return s.trim()}).filter(Boolean); if (en.length) o.en = en; if (ko.length) o.ko = ko; if (ja.length) o.ja = ja; if (zh.length) o.zh = zh; return o; })(),
+      description: document.getElementById('fDesc').value.trim(),
+      meta_title: document.getElementById('fMetaTitle').value.trim(),
+      meta_description: document.getElementById('fMetaDesc').value.trim()
+    };
+    if (url) payload.cover = url;
+    if (bannerUrl) payload.banner = bannerUrl;
+    var editId = document.getElementById('editId').value;
+    if (editId) {
+      await api('/api/admin/manga/' + editId, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+      toast('Manga updated.');
+    } else {
+      await api('/api/admin/manga', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+      toast('Manga added.');
+    }
+    e.target.reset(); coverFile = null; bannerFile = null; coverUrl = ''; document.getElementById('coverThumbs').innerHTML = ''; document.getElementById('bannerThumbs').innerHTML = ''; document.getElementById('coverUrlHint').textContent = ''; document.getElementById('bannerUrlHint').textContent = '';
+    document.getElementById('editId').value = '';
+    document.getElementById('addTitle').textContent = 'Add manga';
+    document.getElementById('saveMangaBtn').textContent = 'Save manga';
+    document.getElementById('cancelEditBtn').style.display = 'none';
+    loadManga(); showSection('manga');
+  } catch(err){ toast(err.message); }
+  btn.disabled = false;
+});
+function pickChapterManga(id, title){
+  var sel = document.getElementById('chapterSelect');
+  var found = false;
+  for (var i = 0; i < sel.options.length; i++) if (sel.options[i].value === String(id)) found = true;
+  if (!found) { var opt = document.createElement('option'); opt.value = id; opt.textContent = title; sel.appendChild(opt); }
+  sel.value = String(id);
+  document.getElementById('chapterPickedHint').textContent = 'Selected: ' + title;
+  document.querySelectorAll('#chapterMangaResults .ch-result').forEach(function(el){ el.classList.toggle('picked', el.dataset.pickId === String(id)); });
+  loadChapters();
+}
+async function searchChapterManga(){
+  var q = document.getElementById('chapterMangaSearch').value.trim();
+  var box = document.getElementById('chapterMangaResults');
+  if (!q) { box.innerHTML = ''; return; }
+  box.innerHTML = '<p class="muted">Searching…</p>';
+  try {
+    var d = await api('/api/admin/manga?limit=20&q=' + encodeURIComponent(q));
+    var items = d.items || [];
+    if (!items.length) { box.innerHTML = '<p class="muted">No manga found.</p>'; return; }
+    box.innerHTML = items.map(function(m){
+      return '<div class="ch-result" data-pick-id="'+m.id+'" data-pick-title="'+esc(m.title)+'"><img src="'+esc(m.cover)+'" alt=""><b>'+esc(m.title)+'</b></div>';
+    }).join('');
+    box.querySelectorAll('.ch-result').forEach(function(el){
+      el.addEventListener('click', function(){ pickChapterManga(Number(el.dataset.pickId), el.dataset.pickTitle); });
+    });
+  } catch(e){ box.innerHTML = '<p class="muted">' + esc(e.message) + '</p>'; }
+}
+var chapterSearchTimer = null;
+document.getElementById('chapterMangaSearch').addEventListener('input', function(){
+  clearTimeout(chapterSearchTimer);
+  chapterSearchTimer = setTimeout(searchChapterManga, 300);
+});
+document.getElementById('chapterMangaSearch').addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); searchChapterManga(); } });
+document.getElementById('chapterMangaSearchBtn').addEventListener('click', searchChapterManga);
+document.getElementById('chapterSelect').addEventListener('change', function(){
+  var opt = this.options[this.selectedIndex];
+  if (opt) document.getElementById('chapterPickedHint').textContent = 'Selected: ' + opt.textContent;
+  loadChapters();
+});
+document.getElementById('epForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  var mangaId = document.getElementById('chapterSelect').value;
+  var n = document.getElementById('epNo').value;
+  if (!mangaId || !n) { toast('Pick a manga and a chapter number first.'); return; }
+  if (!episodeFiles.length) { toast('Add at least one page image first.'); return; }
+  try {
+    var failed = [];
+    for (var i = 0; i < episodeFiles.length; i++) {
+      var en = episodeFiles[i];
+      if (en.url) continue;
+      en.status = 'uploading'; renderEpPages();
+      try { en.url = await uploadFile(en.file); en.status = 'done'; }
+      catch (err) { en.status = 'failed'; failed.push(i + 1); }
+      renderEpPages();
+    }
+    if (failed.length) {
+      toast('Page ' + failed.join(', ') + ' failed to upload. Uploaded pages are kept — remove the failed pages or save again to retry them.');
+      return;
+    }
+    var urls = episodeFiles.map(function(en){ return en.url; });
+    await api('/api/admin/chapters', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ manga_id: Number(mangaId), n: Number(n), pages: urls, language: document.getElementById('epLang').value }) });
+    toast('Episode added with ' + urls.length + ' pages, in the order shown.');
+    e.target.reset(); episodeFiles = []; renderEpPages();
+    loadChapters(); loadManga();
+  } catch(err){ toast(err.message); }
+});
+var importSource = 'jikan';
+var jikanMode = 'title';
+function updateImportHint(){
+  var label = document.getElementById('jikanLabel');
+  var hint = document.getElementById('jikanHint');
+  if (jikanMode === 'title') {
+    label.textContent = 'Title';
+    hint.textContent = importSource === 'jikan' ? 'Title search via MyAnimeList (Jikan). Try a manga name.'
+      : importSource === 'mangadex' ? 'Title search via MangaDex. Try a manga name.'
+      : 'Title search via AniList. Try a manga name.';
+  } else {
+    label.textContent = importSource === 'mangadex' ? 'MangaDex ID (UUID)' : importSource === 'anilist' ? 'AniList ID' : 'MAL ID';
+    hint.textContent = importSource === 'mangadex' ? 'ID search via MangaDex. Paste the manga UUID, for example from a MangaDex manga URL.'
+      : importSource === 'anilist' ? 'ID search via AniList. Try a numeric AniList ID.'
+      : 'ID search via MyAnimeList. Try a numeric MAL ID, for example 1.';
+  }
+}
+document.querySelectorAll('[data-source]').forEach(function(t){ t.addEventListener('click', function(){
+  document.querySelectorAll('[data-source]').forEach(function(x){ x.classList.toggle('active', x === t); });
+  importSource = t.dataset.source; updateImportHint();
+}); });
+document.querySelectorAll('[data-jmode]').forEach(function(t){ t.addEventListener('click', function(){
+  document.querySelectorAll('[data-jmode]').forEach(function(x){ x.classList.toggle('active', x === t); });
+  jikanMode = t.dataset.jmode; updateImportHint();
+}); });
+document.querySelectorAll('.tab[data-tab]').forEach(function(t){ t.addEventListener('click', function(){
+  document.querySelectorAll('.tab[data-tab]').forEach(function(x){ x.classList.toggle('active', x === t); });
+  document.getElementById('tab-manual').classList.toggle('hidden', t.dataset.tab !== 'manual');
+  document.getElementById('tab-jikan').classList.toggle('hidden', t.dataset.tab !== 'jikan');
+}); });
+function normJikanRaw(it){
+  return { title: it.title || '', cover: it.images && it.images.jpg ? it.images.jpg.image_url : '', synopsis: it.synopsis || '',
+    status: it.status || 'Ongoing', type: it.type || 'Manga', score: it.score || 0,
+    year: it.published && it.published.from ? new Date(it.published.from).getFullYear() : 2020,
+    genres: (it.genres || []).map(function(g){ return g.name; }),
+    author: (it.authors || []).map(function(a){ return a.name; }).join(', '), artist: '',
+    content_rating: '', content_type: it.type || 'Manga',
+    alt_titles: it.title_english ? { en: [it.title_english] } : {}, studio: '',
+    start_year: it.published && it.published.from ? new Date(it.published.from).getFullYear() : null };
+}
+document.getElementById('jikanBtn').addEventListener('click', async function(){
+  var q = document.getElementById('jikanQ').value.trim();
+  if (!q) { toast('Type a title or ID first.'); return; }
+  var box = document.getElementById('jikanResults');
+  box.innerHTML = '<p class="muted">Searching…</p>';
+  var items = null, lastErr = '';
+  try {
+    var res = await fetch('/api/admin/import-search?source=' + encodeURIComponent(importSource) + '&mode=' + encodeURIComponent(jikanMode) + '&q=' + encodeURIComponent(q), { signal: AbortSignal.timeout(30000) });
+    if (res.status === 401) { location.href = '/admin/login/'; throw new Error('Session expired. Please log in again.'); }
+    var j = await res.json().catch(function(){ return {}; });
+    if (res.status === 429) throw new Error(j.error || 'The source is limiting requests right now. Please wait a minute and try again.');
+    if (!res.ok) throw new Error(j.error || 'No result found for this search.');
+    items = j.items || [];
+  } catch(err) {
+    lastErr = err.message;
+    if (importSource === 'jikan') {
+      try {
+        var endpoint = jikanMode === 'title'
+          ? 'https://api.jikan.moe/v4/manga?q=' + encodeURIComponent(q) + '&limit=8&order_by=members&sort=desc'
+          : 'https://api.jikan.moe/v4/manga/' + encodeURIComponent(q);
+        var r2 = await fetch(endpoint, { signal: AbortSignal.timeout(20000) });
+        if (r2.status === 429) throw new Error('Jikan is limiting requests right now. Please wait a few seconds and try again.');
+        if (!r2.ok) throw new Error('No result found for this search.');
+        var j2 = await r2.json();
+        var raw = jikanMode === 'title' ? (j2.data || []) : (j2.data ? [j2.data] : []);
+        items = raw.map(normJikanRaw);
+      } catch(err2) { box.innerHTML = '<p class="muted">' + esc(err2.message) + '</p>'; return; }
+    } else {
+      box.innerHTML = '<p class="muted">' + esc(lastErr) + '</p>'; return;
+    }
+  }
+  if (!items.length) { box.innerHTML = '<p class="muted">No results found.</p>'; return; }
+  box.innerHTML = items.map(function(it, i){
+    return '<div class="jikan-card"><img src="'+esc(it.cover||'')+'" alt=""><div style="flex:1;min-width:0"><b>'+esc(it.title)+'</b><br><span class="muted">'+esc(it.status||'')+' · ★ '+(it.score||'–')+(it.author ? ' · ' + esc(it.author) : '')+'</span><br><span class="muted">'+esc((it.synopsis||'').slice(0,140))+'</span></div>'
+    + '<button class="act" data-import="'+i+'">Import</button></div>';
+  }).join('');
+  box.querySelectorAll('[data-import]').forEach(function(btn){ btn.addEventListener('click', async function(){
+    var it = items[parseInt(btn.dataset.import, 10)];
+    btn.disabled = true; btn.textContent = 'Importing…';
+    try {
+      await api('/api/admin/import', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
+        title: it.title, synopsis: it.synopsis || '', cover: it.cover || '',
+        status: it.status || 'Ongoing', type: it.type || 'Manga', score: it.score || 0,
+        year: it.year || 2020, genres: it.genres || [],
+        author: it.author || '', artist: it.artist || '', content_rating: it.content_rating || '',
+        content_type: it.content_type || it.type || 'Manga', alt_titles: it.alt_titles || {},
+        studio: it.studio || '', start_year: it.start_year || null
+      }) });
+      toast('Imported: ' + it.title); loadManga();
+    } catch(err){ toast(err.message); btn.disabled = false; btn.textContent = 'Import'; }
+  }); });
+});
+
+var ADS_SLOTS = [
+  { id: 'home-top', label: 'Homepage top banner' },
+  { id: 'home-between', label: 'Homepage between sections' },
+  { id: 'title-top', label: 'Title page top' },
+  { id: 'reader-top', label: 'Reader top' },
+  { id: 'reader-bottom', label: 'Reader bottom' }
+];
+async function loadAds(){
+  try {
+    var d = await api('/api/admin/ads');
+    var map = {}; (d.items || []).forEach(function(a){ map[a.slot] = a; });
+    document.getElementById('adsList').innerHTML = ADS_SLOTS.map(function(s){
+      var a = map[s.id] || {};
+      return '<div class="card" style="margin-bottom:12px"><h3>' + esc(s.label) + '</h3>'
+        + '<div class="row"><div><label>Ad network</label><select data-ads-network="' + s.id + '"><option' + (a.network === 'Monetag' ? ' selected' : '') + '>Monetag</option><option' + (a.network === 'Adsterra' ? ' selected' : '') + '>Adsterra</option><option' + ((!a.network || a.network === 'Custom') ? ' selected' : '') + '>Custom</option></select></div>'
+        + '<div><label>Ad type</label><select data-ads-type="' + s.id + '"><option' + (a.ad_type === 'Banner' ? ' selected' : '') + '>Banner</option><option' + (a.ad_type === 'Pop-up' ? ' selected' : '') + '>Pop-up</option><option' + (a.ad_type === 'Popunder' ? ' selected' : '') + '>Popunder</option><option' + (a.ad_type === 'Native' ? ' selected' : '') + '>Native</option></select></div></div>'
+        + '<label>Ad code snippet</label><textarea rows="4" data-ads-code="' + s.id + '">' + esc(a.code || '') + '</textarea>'
+        + '<div class="toggle"><span>Enabled<small>When off, this slot renders nothing on the site.</small></span><label class="switch"><input type="checkbox" data-ads-enabled="' + s.id + '"' + (a.enabled ? ' checked' : '') + '><span class="track"></span></label></div></div>';
+    }).join('');
+  } catch(e){}
+}
+document.getElementById('adsSaveBtn').addEventListener('click', async function(){
+  try {
+    for (var i = 0; i < ADS_SLOTS.length; i++) {
+      var s = ADS_SLOTS[i];
+      var net = document.querySelector('[data-ads-network="' + s.id + '"]');
+      var typ = document.querySelector('[data-ads-type="' + s.id + '"]');
+      var code = document.querySelector('[data-ads-code="' + s.id + '"]');
+      var en = document.querySelector('[data-ads-enabled="' + s.id + '"]');
+      if (!net) continue;
+      await api('/api/admin/ads', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slot: s.id, network: net.value, ad_type: typ.value, code: code.value, enabled: !!(en && en.checked) }) });
+    }
+    toast('Ad slots saved.');
+  } catch(err){ toast(err.message); }
+});
+async function loadGenres(){
+  try {
+    var d = await api('/api/admin/genres');
+    document.getElementById('genreList').innerHTML = (d.items || []).map(function(g){ return '<span class="tag">'+esc(g.name)+' <button class="act" style="padding:2px 8px;margin-left:4px" data-genre-del="'+g.id+'" title="Delete genre">×</button></span>'; }).join('') || '<span class="muted">No genres yet.</span>';
+    document.querySelectorAll('[data-genre-del]').forEach(function(btn){ btn.addEventListener('click', async function(){
+      if (!confirm('Delete this genre?')) return;
+      try { await api('/api/admin/genres/' + btn.dataset.genreDel, { method: 'DELETE' }); toast('Genre deleted.'); loadGenres(); } catch(e){ toast(e.message); }
+    }); });
+  } catch(e){}
+}
+document.getElementById('genreForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  try {
+    await api('/api/admin/genres', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: document.getElementById('genreInput').value.trim() }) });
+    toast('Genre added.'); e.target.reset(); loadGenres();
+  } catch(err){ toast(err.message); }
+});
+async function loadComments(){
+  try {
+    var d = await api('/api/admin/comments');
+    document.getElementById('commentRows').innerHTML = (d.items || []).map(function(c){
+      return '<tr><td data-label="User"><b>'+esc(c.user_name)+'</b></td><td data-label="Comment">'+esc(c.body)+'</td><td data-label="Status"><span class="tag">'+esc(c.status)+'</span></td>'
+      + '<td data-label="Actions"><button class="act" data-cact="approve" data-cid="'+c.id+'">Approve</button> <button class="act" data-cact="hide" data-cid="'+c.id+'">Hide</button> <button class="act" data-cact="delete" data-cid="'+c.id+'">Delete</button></td></tr>';
+    }).join('') || '<tr><td data-label="Result" colspan="4">No comments yet.</td></tr>';
+    document.querySelectorAll('[data-cact]').forEach(function(btn){ btn.addEventListener('click', async function(){
+      try { await api('/api/admin/comments/' + btn.dataset.cid, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: btn.dataset.cact }) }); toast('Comment updated.'); loadComments(); } catch(err){ toast(err.message); }
+    }); });
+  } catch(e){}
+}
+async function loadReports(){
+  try {
+    var d = await api('/api/admin/reports');
+    document.getElementById('reportRows').innerHTML = (d.items || []).map(function(r){
+      return '<tr><td data-label="Reported by">'+esc(r.reporter)+'</td><td data-label="Issue">'+esc(r.issue)+'</td><td data-label="Status"><span class="tag">'+esc(r.status)+'</span></td>'
+      + '<td data-label="Action"><button class="act" data-resolve="'+r.id+'">Resolve</button></td></tr>';
+    }).join('') || '<tr><td data-label="Result" colspan="4">No reports yet.</td></tr>';
+    document.querySelectorAll('[data-resolve]').forEach(function(btn){ btn.addEventListener('click', async function(){
+      try { await api('/api/admin/reports/' + btn.dataset.resolve + '/resolve', { method: 'POST' }); toast('Report resolved.'); loadReports(); } catch(err){ toast(err.message); }
+    }); });
+  } catch(e){}
+}
+async function loadRequests(){
+  try {
+    var d = await api('/api/admin/requests');
+    document.getElementById('requestRows').innerHTML = (d.items || []).map(function(r){
+      return '<tr><td data-label="Requested title"><b>'+esc(r.title)+'</b></td><td data-label="By">'+esc(r.requester)+'</td><td data-label="Status"><span class="tag">'+esc(r.status)+'</span></td>'
+      + '<td data-label="Action"><button class="act" data-req="approve" data-rid="'+r.id+'">Approve</button> <button class="act" data-req="reject" data-rid="'+r.id+'">Reject</button></td></tr>';
+    }).join('') || '<tr><td data-label="Result" colspan="4">No requests yet.</td></tr>';
+    document.querySelectorAll('[data-req]').forEach(function(btn){ btn.addEventListener('click', async function(){
+      try { await api('/api/admin/requests/' + btn.dataset.rid, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: btn.dataset.req }) }); toast('Request updated.'); loadRequests(); } catch(err){ toast(err.message); }
+    }); });
+  } catch(e){}
+}
+async function loadUsers(){
+  try {
+    var d = await api('/api/admin/users');
+    document.getElementById('userRows').innerHTML = (d.items || []).map(function(u){
+      var actions = u.role === 'admin'
+        ? '<span class="muted">Full access</span>'
+        : '<button class="act" data-ban="'+u.id+'" data-banned="'+u.banned+'">'+(u.banned ? 'Unban' : 'Ban')+'</button> '
+        + '<select class="act" data-role="'+u.id+'" style="padding:6px 10px"><option value="moderator"'+(u.role==='moderator'?' selected':'')+'>Moderator</option><option value="user"'+(u.role==='user'?' selected':'')+'>User</option></select>';
+      return '<tr><td data-label="User"><b>'+esc(u.email)+'</b></td><td data-label="Role"><span class="tag '+(u.role==='admin'?'red':u.role==='moderator'?'blue':'')+'">'+esc(u.role)+'</span></td>'
+      + '<td data-label="Status"><span class="tag '+(u.banned?'red':'green')+'">'+(u.banned?'Banned':'Active')+'</span></td><td data-label="Actions">'+actions+'</td></tr>';
+    }).join('') || '<tr><td data-label="Result" colspan="4">No users yet.</td></tr>';
+    document.querySelectorAll('[data-ban]').forEach(function(btn){ btn.addEventListener('click', async function(){
+      try { await api('/api/admin/users/' + btn.dataset.ban, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: btn.dataset.banned === '1' ? 'unban' : 'ban' }) }); toast('User updated.'); loadUsers(); } catch(err){ toast(err.message); }
+    }); });
+    document.querySelectorAll('[data-role]').forEach(function(sel){ sel.addEventListener('change', async function(){
+      try { await api('/api/admin/users/' + sel.dataset.role, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'role', role: sel.value }) }); toast('Role updated.'); } catch(err){ toast(err.message); loadUsers(); }
+    }); });
+  } catch(e){}
+}
+document.getElementById('roleForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  try {
+    await api('/api/admin/users', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: document.getElementById('newUserEmail').value.trim(), password: document.getElementById('newUserPass').value, role: document.getElementById('newUserRole').value }) });
+    toast('User created.'); e.target.reset(); loadUsers();
+  } catch(err){ toast(err.message); }
+});
+async function loadActivity(){
+  try {
+    var d = await api('/api/admin/activity');
+    document.getElementById('logList').innerHTML = (d.items || []).map(function(l){
+      var when = l.created_at ? new Date(l.created_at).toLocaleString() : '';
+      return '<div style="padding:10px 0;border-bottom:1px solid #1e1e26"><span class="muted">'+esc(when)+' — </span>'+esc(l.action)+' <span class="muted">by '+esc(l.actor_email)+'</span></div>';
+    }).join('') || '<p class="muted">No activity yet.</p>';
+  } catch(e){}
+}
+async function loadSettings(){
+  try {
+    var d = await api('/api/admin/settings');
+    document.getElementById('setName').value = d.site_name || '';
+    document.getElementById('setFooter').value = d.footer_text || '';
+    try { lastSocial = JSON.parse(d.social_links || '{}'); } catch(e){ lastSocial = {}; }
+    document.getElementById('socTelegram').value = lastSocial.Telegram || '';
+    document.getElementById('socFacebook').value = lastSocial.Facebook || '';
+    document.getElementById('socInstagram').value = lastSocial.Instagram || '';
+    document.getElementById('socX').value = lastSocial.X || lastSocial['X/Twitter'] || lastSocial.Twitter || '';
+    document.getElementById('socYouTube').value = lastSocial.YouTube || '';
+    document.getElementById('socDiscord').value = lastSocial.Discord || '';
+    if (d.logo_url) {
+      document.querySelectorAll('.topbar img.logo').forEach(function(img){ img.src = d.logo_url; });
+    }
+    if (d.site_name) {
+      document.querySelectorAll('.topbar .brand').forEach(function(b){ b.innerHTML = esc(d.site_name) + '<i>.</i>'; });
+    }
+    document.getElementById('maintToggle').checked = d.maintenance === '1';
+    document.getElementById('adultToggle').checked = d.show_adult === '1';
+    document.getElementById('imgbbStatus').textContent = d.imgbb_configured ? 'Image hosting is configured.' : 'Image hosting is not configured. Add your ImgBB API key above to enable uploads.';
+    if (d.logo_url) { document.getElementById('logoThumbs').innerHTML = '<img src="' + esc(d.logo_url) + '" alt="">'; }
+  } catch(e){}
+}
+document.getElementById('saveSettings').addEventListener('click', async function(){
+  var social = {};
+  Object.keys(lastSocial).forEach(function(k){ if (['Telegram','Facebook','Instagram','X','X/Twitter','Twitter','YouTube','Discord'].indexOf(k) < 0) social[k] = lastSocial[k]; });
+  var boxVals = { Telegram: 'socTelegram', Facebook: 'socFacebook', Instagram: 'socInstagram', X: 'socX', YouTube: 'socYouTube', Discord: 'socDiscord' };
+  Object.keys(boxVals).forEach(function(k){
+    var v = document.getElementById(boxVals[k]).value.trim();
+    if (v) social[k] = v;
+  });
+  var payload = {
+    site_name: document.getElementById('setName').value,
+    footer_text: document.getElementById('setFooter').value,
+    social_links: JSON.stringify(social),
+    maintenance: document.getElementById('maintToggle').checked ? '1' : '0',
+    show_adult: document.getElementById('adultToggle').checked ? '1' : '0'
+  };
+  var key = document.getElementById('imgbbKey').value.trim();
+  if (key) payload.imgbb_key = key;
+  if (logoUrl) payload.logo_url = logoUrl;
+  try { await api('/api/admin/settings', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }); toast('Settings saved.'); loadSettings(); } catch(err){ toast(err.message); }
+});
+document.getElementById('restoreBtn').addEventListener('click', function(){ document.getElementById('restoreFile').click(); });
+document.getElementById('restoreFile').addEventListener('change', async function(){
+  if (!this.files[0]) return;
+  var box = document.getElementById('restoreResult');
+  try {
+    var text = await this.files[0].text();
+    var parsed = JSON.parse(text);
+    var items = Array.isArray(parsed) ? parsed : (parsed.items || []);
+    if (!items.length) throw new Error('No titles found in this file.');
+    box.textContent = 'Importing…';
+    var d = await api('/api/admin/restore', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: items }) });
+    box.textContent = 'Imported ' + d.added + ' new titles, skipped ' + d.skipped + ' already existing.';
+    toast('Catalogue imported.'); loadManga();
+  } catch(e){ box.textContent = e.message; }
+  this.value = '';
+});
+document.getElementById('annBtn').addEventListener('click', async function(){
+  try {
+    var annVal = document.getElementById('annInput').value.trim();
+    await api('/api/admin/announcements', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ announcement: annVal }) });
+    document.getElementById('annPreview').textContent = annVal ? 'Current: ' + annVal : '';
+    toast('Announcement saved.');
+  } catch(err){ toast(err.message); }
+});
+document.getElementById('exportBtn').addEventListener('click', async function(){
+  try {
+    var d = await api('/api/admin/export');
+    var blob = new Blob([JSON.stringify(d.items, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'toonkotsu-catalogue.json'; a.click();
+    toast('Catalogue exported.');
+  } catch(err){ toast(err.message); }
+});
+document.getElementById('checkImagesBtn').addEventListener('click', async function(){
+  var box = document.getElementById('checkResult');
+  box.innerHTML = '<p class="muted">Checking covers…</p>';
+  try {
+    var d = await api('/api/admin/check-images');
+    var msg = '';
+    if (!d.broken.length) msg += '<p class="muted">All ' + d.checked + ' covers are reachable.</p>';
+    else msg += '<p class="muted">' + d.broken.length + ' of ' + d.checked + ' covers failed: ' + d.broken.map(function(b){ return esc(b.title); }).join(', ') + '</p>';
+    if (d.unchecked && d.unchecked.length) msg += '<p class="muted">' + d.unchecked.length + ' covers could not be checked right now (host did not answer) and are not counted as broken.</p>';
+    box.innerHTML = msg;
+  } catch(err){ box.innerHTML = '<p class="muted">' + esc(err.message) + '</p>'; }
+});
+setupDropzone('spotBannerDrop', 'spotBannerFile', 'spotBannerThumbs', async function(files){
+  if (!files[0]) return;
+  try { spotNewBanner = await uploadFile(files[0]); toast('Banner uploaded. Click Add to save it with this title.'); } catch(e){ toast(e.message); }
+});
+document.getElementById('spotAddBtn').addEventListener('click', async function(){
+  try {
+    var cur = await api('/api/admin/spotlight');
+    var items = cur.items || [];
+    if (items.length >= 5) { toast('Spotlight is full (5 titles). Remove one first.'); return; }
+    var add = Number(document.getElementById('spotSelect').value);
+    if (items.some(function(x){ return x.id === add; })) { toast('That title is already in Spotlight.'); return; }
+    var entry = { id: add, bannerFallback: spotNewBanner, banner: spotNewBanner };
+    if (!spotNewBanner) {
+      var m = manga.find(function(x){ return x.id === add; });
+      if (m) { entry.bannerFallback = m.bannerFallback || m.banner || ''; entry.banner = entry.bannerFallback; }
+    }
+    await saveSpotlight(items.concat([entry]));
+    spotNewBanner = ''; document.getElementById('spotBannerThumbs').innerHTML = ''; document.getElementById('spotBannerFile').value = '';
+    toast('Spotlight updated.'); loadSpotlight();
+  } catch(err){ toast(err.message); }
+});
+async function init(){
+  try {
+    var me = await api('/api/admin/me');
+    currentUser = me.user;
+    if (currentUser.role === 'user') { location.href = '/'; return; }
+    if (currentUser.role === 'moderator') {
+      ['settings','users','ads'].forEach(function(sec){
+        document.querySelectorAll('.side-btn[data-section="' + sec + '"]').forEach(function(b){ b.style.display = 'none'; });
+      });
+      var gf = document.getElementById('genreForm'); if (gf) gf.style.display = 'none';
+    }
+    loadManga(); loadAnalytics(); loadSpotlight(); loadGenres(); loadComments(); loadReports(); loadRequests(); loadUsers(); loadActivity(); loadSettings(); loadAds();
+    try {
+      var ann = await api('/api/admin/announcements');
+      document.getElementById('annInput').value = ann.announcement || '';
+      document.getElementById('annPreview').textContent = ann.announcement ? 'Current: ' + ann.announcement : '';
+    } catch(e){}
+  } catch(err){ /* api() already redirects on 401 */ }
+}
+init();
+</script>
+</body>
+</html>

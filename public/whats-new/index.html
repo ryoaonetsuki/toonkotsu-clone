@@ -152,9 +152,19 @@
           if (src.indexOf("logo") !== -1 && img.getAttribute("data-tk-logo") !== "1") { img.setAttribute("src", logo); img.setAttribute("data-tk-logo", "1"); }
         });
       }
-      var foot = document.querySelector("footer");
+      var footers = Array.prototype.slice.call(document.querySelectorAll("footer"));
+      var foot = null;
+      for (var fi = 0; fi < footers.length; fi++) {
+        if ((footers[fi].textContent || "").indexOf("Stories and artwork belong to their creators.") !== -1) { foot = footers[fi]; break; }
+      }
+      if (!foot && name) {
+        for (var fj = 0; fj < footers.length; fj++) {
+          if ((footers[fj].textContent || "").indexOf(name) !== -1) { foot = footers[fj]; break; }
+        }
+      }
+      if (!foot) foot = footers.length ? footers[footers.length - 1] : null;
       if (foot && socials.length) {
-        var old = foot.querySelector("[data-tk-socials]"); if (old) old.remove();
+        document.querySelectorAll("[data-tk-socials]").forEach(function(n){ n.remove(); });
         var row = document.createElement("div");
         row.setAttribute("data-tk-socials", "1");
         row.style.cssText = "display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:12px";

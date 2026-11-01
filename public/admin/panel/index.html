@@ -202,7 +202,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--red)}
     </section>
 
     <section id="sec-add" class="hidden">
-      <h2 id="addTitle">Add manga</h2><p class="muted">Add a title manually, or search MyAnimeList through the Jikan API and import it. Cover images are uploaded directly — there is no image link field.</p>
+      <h2 id="addTitle">Add manga</h2><p class="muted">Add a title manually, or search MangaDex or MangaUpdates and import it. Cover images are uploaded directly — there is no image link field.</p>
       <div class="tabs">
         <button class="tab active" data-tab="manual">Manual add</button>
         <button class="tab" data-tab="jikan">Import</button>
@@ -250,7 +250,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--red)}
         </div>
         <div class="row"><div><label id="jikanLabel">Title</label><input type="text" id="jikanQ"></div>
         <div style="flex:0 0 auto;align-self:flex-end"><button class="btn btn-light" id="jikanBtn">Search</button></div></div>
-        <div class="hint" id="jikanHint">Title search: try a manga name. ID search: try a MyAnimeList numeric ID, for example 1.</div>
+        <div class="hint" id="jikanHint">Title search: try a manga name. ID search: try a MangaDex UUID or a MangaUpdates numeric ID.</div>
         <div id="jikanResults"></div>
       </div>
     </section>
@@ -911,12 +911,14 @@ document.getElementById('jikanBtn').addEventListener('click', async function(){
   }
   if (!items.length) { box.innerHTML = '<p class="muted">No results found.</p>'; return; }
   box.innerHTML = items.map(function(it, i){
-    var cov = it.cover || '';
-    var covFb = cov.replace(/\.512\.jpg$/, '');
-    var imgTag = cov ? '<img src="'+esc(cov)+'" data-fb="'+esc(covFb)+'" onerror="var f=this.getAttribute(\'data-fb\'); if(f && this.src!==f){this.src=f;} else {this.style.display=\'none\';}" alt="">' : '';
+    var disp = it.cover_display || it.cover || '';
+    var fb1 = it.cover || '';
+    var fb2 = it.cover_plain || '';
+    var imgTag = disp ? '<img src="'+esc(disp)+'" data-fb1="'+esc(fb1)+'" data-fb2="'+esc(fb2)+'" alt="">' : '';
     return '<div class="jikan-card">'+imgTag+'<div style=<div style="flex:1;min-width:0"><b>'+esc(it.title)+'</b><br><span class="muted">'+esc(it.status||'')+' · ★ '+(it.score||'–')+(it.author ? ' · ' + esc(it.author) : '')+'</span><br><span class="muted">'+esc((it.synopsis||'').slice(0,140))+'</span></div>'
     + '<button class="act" data-import="'+i+'">Import</button></div>';
   }).join('');
+  box.querySelectorAll('img[data-fb1]').forEach(function(img){ img.addEventListener('error', function(){ var a = img.getAttribute('data-fb1'), b = img.getAttribute('data-fb2'); if (a && img.src !== a) { img.src = a; } else if (b && img.src !== b) { img.src = b; } else { img.style.display = 'none'; } }); });
   box.querySelectorAll('[data-import]').forEach(function(btn){ btn.addEventListener('click', async function(){
     var it = items[parseInt(btn.dataset.import, 10)];
     btn.disabled = true; btn.textContent = 'Importing…';

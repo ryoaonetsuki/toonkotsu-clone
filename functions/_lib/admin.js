@@ -305,7 +305,7 @@ export async function adminHandler(context) {
     return json({ ok: true, url: r.url });
   }
 
-  // ---- Jikan import (server uploads cover to ImgBB) ----
+  // ---- Import (server uploads cover to ImgBB) ----
   if (parts[0] === "import" && method === "POST") {
     if (!isAdmin && !isMod) return forbidden();
     const b = await bodyJson(request);
@@ -347,7 +347,24 @@ export async function adminHandler(context) {
     return json({ ok: true, id });
   }
 
-  // ---- import search proxy (Jikan / MangaDex / AniList, server-side) ----
+  // ---- same-origin cover proxy (admin/mod only; search-result thumbnails) ----
+  // Client networks sometimes cannot reach uploads.mangadex.org or
+  // cdn.mangaupdates.com directly, so their thumbnails load from the site's
+  // own origin instead. Host allowlist only — never an open proxy.
+  if (parts[0] === "cover-proxy" && method === "GET") {
+    if (!isAdmin && !isMod) return forbidden();
+    let target;
+    try { target = new URL(url.searchParams.get("u") || ""); } catch { return json({ error: "Invalid image URL." }, 400); }
+    if (target.protocol !== "https:" || (target.hostname !== "uploads.mangadex.org" && target.hostname !== "cdn.mangaupdates.com")) return json({ error: "Image host not allowed." }, 400);
+    try {
+      const up = await fetch(target.toString(), { signal: AbortSignal.timeout(20000), headers: { "User-Agent": "BongManga/1.0", Accept: "image/*" } });
+      if (!up.ok) return json({ error: "Cover image could not be fetched." }, 502);
+      const buf = await up.arrayBuffer();
+      return new Response(buf, { status: 200, headers: { "content-type": up.headers.get("content-type") || "image/jpeg", "cache-control": "public, max-age=86400" } });
+    } catch { return json({ error: "Cover image could not be fetched." }, 502); }
+  }
+
+  // ---- import search proxy (MangaDex / MangaUpdates, server-side) ----
   if (parts[0] === "import-search" && method === "GET") {
     if (!isAdmin && !isMod) return forbidden();
     const source = (url.searchParams.get("source") || "mangadex").toLowerCase();
@@ -382,6 +399,8 @@ export async function adminHandler(context) {
           const coverRel = rels.find((r) => r.type === "cover_art");
           const cover = coverRel && coverRel.attributes && coverRel.attributes.fileName
             ? `https://uploads.mangadex.org/covers/${it.id}/${coverRel.attributes.fileName}.512.jpg` : "";
+          const coverDisplay = cover ? `/api/admin/cover-proxy?u=${encodeURIComponent(cover)}` : "";
+          const coverPlain = cover ? cover.replace(/\.512\.jpg$/, "") : "";
           const author = rels.filter((r) => r.type === "author").map((r) => r.attributes && r.attributes.name).filter(Boolean).join(", ");
           const artist = rels.filter((r) => r.type === "artist").map((r) => r.attributes && r.attributes.name).filter(Boolean).join(", ");
           const alt = {};
@@ -396,7 +415,7 @@ export async function adminHandler(context) {
           const mdTitle = mdTitles.en || mdTitles.ja || mdTitles.ko || mdTitles.zh || Object.values(mdTitles)[0] || "";
           return {
             title: mdTitle,
-            cover, synopsis: a.description ? (a.description.en || Object.values(a.description)[0] || "") : "",
+            cover, cover_display: coverDisplay, cover_plain: coverPlain, synopsis: a.description ? (a.description.en || Object.values(a.description)[0] || "") : "",
             status: mapStatus(a.status), type, score: 0, year: a.year || 2020,
             genres: (a.tags || []).map((tg) => tg.attributes && tg.attributes.name && tg.attributes.name.en).filter(Boolean),
             author, artist, content_rating: ratingMap[a.contentRating] || "All Ages",
@@ -416,10 +435,11 @@ export async function adminHandler(context) {
         };
         const muMap = (rec) => {
           const img = rec.image && rec.image.url ? (rec.image.url.thumb || rec.image.url.original || "") : "";
+          const imgPlain = rec.image && rec.image.url ? (rec.image.url.original || "") : "";
           const authors = Array.isArray(rec.authors) ? rec.authors : [];
           return {
             title: rec.title || "",
-            cover: img,
+            cover: img, cover_display: img ? `/api/admin/cover-proxy?u=${encodeURIComponent(img)}` : "", cover_plain: imgPlain,
             synopsis: stripMd(rec.description),
             status: muStatus(rec),
             type: rec.type || "Manga",
@@ -438,11 +458,24 @@ export async function adminHandler(context) {
         if (mode === "id") {
           if (!/^\d+$/.test(q)) return json({ error: "MangaUpdates ID must be a number." }, 400);
           const { res, data } = await fetchJson(`https://api.mangaupdates.com/v1/series/${encodeURIComponent(q)}`);
-          if (!res.ok) return json({ error: "No result found for this search." }, 502);
+          if (!res.ok) {
+            if (res.status === 404) return json({ error: "No result found for this search." }, 502);
+            return json({ error: "MangaUpdates search failed (HTTP " + res.status + "). Please try again in a minute." }, 502);
+          }
           return json({ items: [muMap(data)] });
         }
-        const { res, data } = await fetchJson("https://api.mangaupdates.com/v1/series/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ search: q, page: 1, perpage: 8 }) });
-        if (!res.ok) return json({ error: "No result found for this search." }, 502);
+        let res, data;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const r = await fetchJson("https://api.mangaupdates.com/v1/series/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ search: q, page: 1, perpage: 8 }) });
+          res = r.res; data = r.data;
+          if (res.ok) break;
+          if ((res.status === 429 || res.status >= 500) && attempt === 0) await new Promise((w) => setTimeout(w, 1500));
+          else break;
+        }
+        if (!res.ok) {
+          if (res.status === 429) return json({ error: "MangaUpdates is limiting requests right now. Please wait a minute and try again." }, 429);
+          return json({ error: "MangaUpdates search failed (HTTP " + res.status + "). Please try again in a minute." }, 502);
+        }
         const items = ((data && data.results) || []).map((r) => muMap(r.record || {})).filter((it) => it.title);
         return json({ items });
       }

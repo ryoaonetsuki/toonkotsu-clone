@@ -1,4 +1,4 @@
-# BongManga — Manga / Manhwa / Webtoon Platform (Template)
+# Toonkotsu Clone — Manga / Manhwa / Webtoon Platform (Template)
 
 > **License — read this first.** This template is **free to download, use, and
 > host**, but it is **NOT open source**. You may **not modify any source
@@ -187,7 +187,7 @@ functions/              Pages Functions (API + CDN routes)
   api/ cdn/ auth/ ...   Route handlers
 migrations/             Supabase SQL, in run order (0001 → 0007)
 wrangler.toml           Pages project config (rename the project to yours)
-LICENSE.md              BongManga Template License (no-modification)
+LICENSE.md              Toonkotsu Clone Template License (no-modification)
 README.md               This file
 ```
 

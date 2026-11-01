@@ -1,4 +1,4 @@
--- BongManga Template — 0001 base schema (run FIRST, then 0002 → 0007 in order).
+-- Toonkotsu Clone Template — 0001 base schema (run FIRST, then 0002 → 0007 in order).
 -- Idempotent: every statement is safe to re-run on an empty or existing database.
 -- This creates EMPTY tables only. No manga, chapters, covers, users, or seed rows
 -- are included: the admin creates all content through the admin panel.

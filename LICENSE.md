@@ -1,4 +1,4 @@
-# BongManga Template License
+# Toonkotsu Clone Template License
 
 **Version 1.0 — plain language. If this plain-language version and any legal
 translation ever disagree, the intent in this document controls.**

@@ -318,7 +318,7 @@ export async function adminHandler(context) {
       const settings = await getSettings(env);
       if (!settings.imgbb_key) return json({ error: "Image hosting is not configured. Open Settings and add your ImgBB API key." }, 400);
       try {
-        const imgRes = await fetch(b.cover, { headers: { "User-Agent": "BongManga/1.0" } });
+        const imgRes = await fetch(b.cover, { headers: { "User-Agent": "Aonetsuki/1.0" } });
         if (!imgRes.ok) throw new Error("cover fetch failed");
         const blob = await imgRes.blob();
         const up = await uploadToImgbb(env, blob, "cover.jpg");
@@ -355,16 +355,16 @@ export async function adminHandler(context) {
     if (!isAdmin && !isMod) return forbidden();
     let target;
     try { target = new URL(url.searchParams.get("u") || ""); } catch { return json({ error: "Invalid image URL." }, 400); }
-    if (target.protocol !== "https:" || (target.hostname !== "uploads.mangadex.org")) return json({ error: "Image host not allowed." }, 400);
+    if (target.protocol !== "https:" || (target.hostname !== "uploads.mangadex.org" && target.hostname !== "media.kitsu.app")) return json({ error: "Image host not allowed." }, 400);
     try {
-      const up = await fetch(target.toString(), { signal: AbortSignal.timeout(20000), headers: { "User-Agent": "BongManga/1.0", Accept: "image/*" } });
+      const up = await fetch(target.toString(), { signal: AbortSignal.timeout(20000), headers: { "User-Agent": "Aonetsuki/1.0", Accept: "image/*" } });
       if (!up.ok) return json({ error: "Cover image could not be fetched." }, 502);
       const buf = await up.arrayBuffer();
       return new Response(buf, { status: 200, headers: { "content-type": up.headers.get("content-type") || "image/jpeg", "cache-control": "public, max-age=86400" } });
     } catch { return json({ error: "Cover image could not be fetched." }, 502); }
   }
 
-  // ---- import search proxy (MangaDex only, server-side) ----
+  // ---- import search proxy (MangaDex + Kitsu, server-side) ----
   if (parts[0] === "import-search" && method === "GET") {
     if (!isAdmin && !isMod) return forbidden();
     const source = (url.searchParams.get("source") || "mangadex").toLowerCase();
@@ -372,7 +372,7 @@ export async function adminHandler(context) {
     const q = (url.searchParams.get("q") || "").trim();
     if (!q) return json({ error: "Search text is required." }, 400);
     const fetchJson = async (input, init) => {
-      const res = await fetch(input, { ...(init || {}), signal: AbortSignal.timeout(20000), headers: { "User-Agent": "BongManga/1.0", Accept: "application/json", ...((init && init.headers) || {}) } });
+      const res = await fetch(input, { ...(init || {}), signal: AbortSignal.timeout(20000), headers: { "User-Agent": "Aonetsuki/1.0", Accept: "application/json", ...((init && init.headers) || {}) } });
       const data = await res.json().catch(() => ({}));
       return { res, data };
     };
@@ -386,13 +386,11 @@ export async function adminHandler(context) {
     try {
       if (source === "mangadex") {
         const base = "https://api.mangadex.org/manga";
-        const endpoint = mode === "id"
-          ? `${base}/${encodeURIComponent(q)}?includes[]=cover_art&includes[]=author&includes[]=artist`
-          : `${base}?title=${encodeURIComponent(q)}&limit=8&includes[]=cover_art&includes[]=author&includes[]=artist&order[followedCount]=desc`;
+        const endpoint = `${base}?title=${encodeURIComponent(q)}&limit=8&includes[]=cover_art&includes[]=author&includes[]=artist&order[followedCount]=desc`;
         const { res, data } = await fetchJson(endpoint);
         if (res.status === 429) return json({ error: "MangaDex is limiting requests right now. Please wait a minute and try again." }, 429);
         if (!res.ok) return json({ error: "No result found for this search." }, 502);
-        const raw = mode === "id" ? (data.data ? [data.data] : []) : (data.data || []);
+        const raw = (data.data || []);
         const items = raw.map((it) => {
           const a = it.attributes || {};
           const rels = it.relationships || [];
@@ -420,6 +418,47 @@ export async function adminHandler(context) {
             genres: (a.tags || []).map((tg) => tg.attributes && tg.attributes.name && tg.attributes.name.en).filter(Boolean),
             author, artist, content_rating: ratingMap[a.contentRating] || "All Ages",
             alt_titles: alt, studio: "", start_year: a.year || null, source_id: it.id,
+          };
+        });
+        return json({ items });
+      }
+      if (source === "kitsu") {
+        const base = "https://kitsu.io/api/edge/manga";
+        let endpoint;
+        if (mode === "id") {
+          if (!/^\d+$/.test(q)) return json({ error: "Kitsu ID must be a number." }, 400);
+          endpoint = `${base}/${encodeURIComponent(q)}?include=genres`;
+        } else {
+          endpoint = `${base}?filter[text]=${encodeURIComponent(q)}&page[limit]=8&include=genres`;
+        }
+        const { res, data } = await fetchJson(endpoint, { headers: { Accept: "application/vnd.api+json" } });
+        if (res.status === 429) return json({ error: "Kitsu is limiting requests right now. Please wait a minute and try again." }, 429);
+        if (!res.ok) return json({ error: "No result found for this search." }, 502);
+        const raw = mode === "id" ? (data.data ? [data.data] : []) : (data.data || []);
+        const genreMap = {};
+        for (const inc of (data.included || [])) {
+          if (inc.type === "genres" && inc.attributes && inc.attributes.name) genreMap[inc.id] = inc.attributes.name;
+        }
+        const items = raw.map((it) => {
+          const a = it.attributes || {};
+          const pi = a.posterImage || {};
+          const cover = pi.large || pi.original || "";
+          const coverDisplay = cover ? `/api/admin/cover-proxy?u=${encodeURIComponent(cover)}` : "";
+          const st = String(a.status || "").toLowerCase();
+          const status = st === "finished" ? "Complete" : st === "hiatus" ? "Hiatus" : "Ongoing";
+          const sub = String(a.subtype || "").toLowerCase();
+          const type = sub === "manhwa" ? "Manhwa" : sub === "manhua" ? "Manhua" : "Manga";
+          const y = a.startDate ? new Date(a.startDate).getFullYear() : NaN;
+          const year = Number.isFinite(y) ? y : 2020;
+          const genres = ((it.relationships && it.relationships.genres && it.relationships.genres.data) || []).map((g) => genreMap[g.id]).filter(Boolean);
+          const titles = a.titles || {};
+          return {
+            title: a.canonicalTitle || titles.en || titles.en_jp || "",
+            cover, cover_display: coverDisplay, cover_plain: cover, synopsis: stripHtml(a.synopsis),
+            status, type, score: a.averageRating ? Math.round(Number(a.averageRating)) / 10 : 0, year,
+            genres, author: "", artist: "", content_rating: undefined,
+            alt_titles: { en: titles.en ? [titles.en] : [], ja: titles.ja_jp ? [titles.ja_jp] : [] },
+            studio: "", start_year: Number.isFinite(y) ? y : null, source_id: String(it.id || ""),
           };
         });
         return json({ items });

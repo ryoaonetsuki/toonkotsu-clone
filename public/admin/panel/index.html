@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin Panel — BongManga</title>
+<title>Admin Panel — Aonetsuki</title>
 <link rel="icon" href="/logo.png">
 <style>
 :root{--bg:#0a0a0d;--panel:#121216;--card:#17171d;--card2:#1e1e26;--line:#26262f;--text:#f5f5f6;--muted:#9b9ba6;--red:#e11d2e;--green:#22c55e;--amber:#f59e0b;--blue:#38bdf8}
@@ -138,7 +138,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--red)}
 <body>
 <header class="topbar">
   <button class="iconbtn" id="menuBtn" aria-label="Open menu"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-  <a class="brand-link" href="/" style="display:flex;align-items:center;gap:10px"><img class="logo" src="/logo.png" alt="BongManga logo"><span class="brand">BongManga<i>.</i></span></a>
+  <a class="brand-link" href="/" style="display:flex;align-items:center;gap:10px"><img class="logo" src="/logo.png" alt="Aonetsuki logo"><span class="brand">Aonetsuki<i>.</i></span></a>
   <div class="spacer"></div>
   <a class="ghost" href="/">View site</a>
   <img id="topAvatar" class="avatar" src="/images/avatar.webp" alt="Admin avatar">
@@ -202,7 +202,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--red)}
     </section>
 
     <section id="sec-add" class="hidden">
-      <h2 id="addTitle">Add manga</h2><p class="muted">Add a title manually, or search MangaDex and import it. Cover images are uploaded directly — there is no image link field.</p>
+      <h2 id="addTitle">Add manga</h2><p class="muted">Add a title manually, or search MangaDex or Kitsu and import it. Cover images are uploaded directly — there is no image link field.</p>
       <div class="tabs">
         <button class="tab active" data-tab="manual">Manual add</button>
         <button class="tab" data-tab="jikan">Import</button>
@@ -242,14 +242,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--red)}
       <div id="tab-jikan" class="card hidden">
         <div class="tabs">
           <button class="tab active" data-source="mangadex">MangaDex</button>
+          <button class="tab" data-source="kitsu">Kitsu</button>
         </div>
-        <div class="tabs">
+        <div class="tabs" id="jmodeRow" style="display:none">
           <button class="tab active" data-jmode="title">Search by title</button>
           <button class="tab" data-jmode="id">Search by ID</button>
         </div>
         <div class="row"><div><label id="jikanLabel">Title</label><input type="text" id="jikanQ"></div>
         <div style="flex:0 0 auto;align-self:flex-end"><button class="btn btn-light" id="jikanBtn">Search</button></div></div>
-        <div class="hint" id="jikanHint">Title search: try a manga name. ID search: try a MangaDex UUID.</div>
+        <div class="hint" id="jikanHint">Title search: try a manga name.</div>
         <div id="jikanResults"></div>
       </div>
     </section>
@@ -869,12 +870,21 @@ var jikanMode = 'title';
 function updateImportHint(){
   var label = document.getElementById('jikanLabel');
   var hint = document.getElementById('jikanHint');
-  if (jikanMode === 'title') {
+  var modeRow = document.getElementById('jmodeRow');
+  if (importSource === 'kitsu') {
+    if (modeRow) modeRow.style.display = '';
+    if (jikanMode === 'id') {
+      label.textContent = 'Kitsu ID';
+      hint.textContent = 'ID search via Kitsu. Try a numeric Kitsu ID, for example 57.';
+    } else {
+      label.textContent = 'Title';
+      hint.textContent = 'Title search via Kitsu. Try a manga name.';
+    }
+  } else {
+    if (modeRow) modeRow.style.display = 'none';
+    jikanMode = 'title';
     label.textContent = 'Title';
     hint.textContent = 'Title search via MangaDex. Try a manga name.';
-  } else {
-    label.textContent = 'MangaDex ID (UUID)';
-    hint.textContent = 'ID search via MangaDex. Paste the manga UUID, for example from a MangaDex manga URL.';
   }
 }
 document.querySelectorAll('[data-source]').forEach(function(t){ t.addEventListener('click', function(){
@@ -892,7 +902,7 @@ document.querySelectorAll('.tab[data-tab]').forEach(function(t){ t.addEventListe
 }); });
 document.getElementById('jikanBtn').addEventListener('click', async function(){
   var q = document.getElementById('jikanQ').value.trim();
-  if (!q) { toast('Type a title or ID first.'); return; }
+  if (!q) { toast('Type a search term first.'); return; }
   var box = document.getElementById('jikanResults');
   box.innerHTML = '<p class="muted">Searching…</p>';
   var items = null, lastErr = '';
@@ -912,7 +922,7 @@ document.getElementById('jikanBtn').addEventListener('click', async function(){
     var fb1 = it.cover || '';
     var fb2 = it.cover_plain || '';
     var imgTag = disp ? '<img src="'+esc(disp)+'" data-fb1="'+esc(fb1)+'" data-fb2="'+esc(fb2)+'" alt="">' : '';
-    return '<div class="jikan-card">'+imgTag+'<div style=<div style="flex:1;min-width:0"><b>'+esc(it.title)+'</b><br><span class="muted">'+esc(it.status||'')+' · ★ '+(it.score||'–')+(it.author ? ' · ' + esc(it.author) : '')+'</span><br><span class="muted">'+esc((it.synopsis||'').slice(0,140))+'</span></div>'
+    return '<div class="jikan-card">'+imgTag+'<div style="flex:1;min-width:0"><b>'+esc(it.title)+'</b><br><span class="muted">'+esc(it.status||'')+' · ★ '+(it.score||'–')+(it.author ? ' · ' + esc(it.author) : '')+'</span><br><span class="muted">'+esc((it.synopsis||'').slice(0,140))+'</span></div>'
     + '<button class="act" data-import="'+i+'">Import</button></div>';
   }).join('');
   box.querySelectorAll('img[data-fb1]').forEach(function(img){ img.addEventListener('error', function(){ var a = img.getAttribute('data-fb1'), b = img.getAttribute('data-fb2'); if (a && img.src !== a) { img.src = a; } else if (b && img.src !== b) { img.src = b; } else { img.style.display = 'none'; } }); });

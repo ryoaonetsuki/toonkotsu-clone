@@ -241,9 +241,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--red)}
       </form></div>
       <div id="tab-jikan" class="card hidden">
         <div class="tabs">
-          <button class="tab active" data-source="jikan">Jikan (MAL)</button>
-          <button class="tab" data-source="mangadex">MangaDex</button>
-          <button class="tab" data-source="anilist">AniList</button>
+          <button class="tab active" data-source="mangadex">MangaDex</button>
+          <button class="tab" data-source="mangaupdates">MangaUpdates</button>
         </div>
         <div class="tabs">
           <button class="tab active" data-jmode="title">Search by title</button>
@@ -866,21 +865,19 @@ document.getElementById('epForm').addEventListener('submit', async function(e){
     loadChapters(); loadManga();
   } catch(err){ toast(err.message); }
 });
-var importSource = 'jikan';
+var importSource = 'mangadex';
 var jikanMode = 'title';
 function updateImportHint(){
   var label = document.getElementById('jikanLabel');
   var hint = document.getElementById('jikanHint');
   if (jikanMode === 'title') {
     label.textContent = 'Title';
-    hint.textContent = importSource === 'jikan' ? 'Title search via MyAnimeList (Jikan). Try a manga name.'
-      : importSource === 'mangadex' ? 'Title search via MangaDex. Try a manga name.'
-      : 'Title search via AniList. Try a manga name.';
+    hint.textContent = importSource === 'mangadex' ? 'Title search via MangaDex. Try a manga name.'
+      : 'Title search via MangaUpdates. Try a manga name.';
   } else {
-    label.textContent = importSource === 'mangadex' ? 'MangaDex ID (UUID)' : importSource === 'anilist' ? 'AniList ID' : 'MAL ID';
+    label.textContent = importSource === 'mangadex' ? 'MangaDex ID (UUID)' : 'MangaUpdates ID';
     hint.textContent = importSource === 'mangadex' ? 'ID search via MangaDex. Paste the manga UUID, for example from a MangaDex manga URL.'
-      : importSource === 'anilist' ? 'ID search via AniList. Try a numeric AniList ID.'
-      : 'ID search via MyAnimeList. Try a numeric MAL ID, for example 1.';
+      : 'ID search via MangaUpdates. Try a numeric MangaUpdates series ID.';
   }
 }
 document.querySelectorAll('[data-source]').forEach(function(t){ t.addEventListener('click', function(){
@@ -896,16 +893,6 @@ document.querySelectorAll('.tab[data-tab]').forEach(function(t){ t.addEventListe
   document.getElementById('tab-manual').classList.toggle('hidden', t.dataset.tab !== 'manual');
   document.getElementById('tab-jikan').classList.toggle('hidden', t.dataset.tab !== 'jikan');
 }); });
-function normJikanRaw(it){
-  return { title: it.title || '', cover: it.images && it.images.jpg ? it.images.jpg.image_url : '', synopsis: it.synopsis || '',
-    status: it.status || 'Ongoing', type: it.type || 'Manga', score: it.score || 0,
-    year: it.published && it.published.from ? new Date(it.published.from).getFullYear() : 2020,
-    genres: (it.genres || []).map(function(g){ return g.name; }),
-    author: (it.authors || []).map(function(a){ return a.name; }).join(', '), artist: '',
-    content_rating: '', content_type: it.type || 'Manga',
-    alt_titles: it.title_english ? { en: [it.title_english] } : {}, studio: '',
-    start_year: it.published && it.published.from ? new Date(it.published.from).getFullYear() : null };
-}
 document.getElementById('jikanBtn').addEventListener('click', async function(){
   var q = document.getElementById('jikanQ').value.trim();
   if (!q) { toast('Type a title or ID first.'); return; }
@@ -920,26 +907,14 @@ document.getElementById('jikanBtn').addEventListener('click', async function(){
     if (!res.ok) throw new Error(j.error || 'No result found for this search.');
     items = j.items || [];
   } catch(err) {
-    lastErr = err.message;
-    if (importSource === 'jikan') {
-      try {
-        var endpoint = jikanMode === 'title'
-          ? 'https://api.jikan.moe/v4/manga?q=' + encodeURIComponent(q) + '&limit=8&order_by=members&sort=desc'
-          : 'https://api.jikan.moe/v4/manga/' + encodeURIComponent(q);
-        var r2 = await fetch(endpoint, { signal: AbortSignal.timeout(20000) });
-        if (r2.status === 429) throw new Error('Jikan is limiting requests right now. Please wait a few seconds and try again.');
-        if (!r2.ok) throw new Error('No result found for this search.');
-        var j2 = await r2.json();
-        var raw = jikanMode === 'title' ? (j2.data || []) : (j2.data ? [j2.data] : []);
-        items = raw.map(normJikanRaw);
-      } catch(err2) { box.innerHTML = '<p class="muted">' + esc(err2.message) + '</p>'; return; }
-    } else {
-      box.innerHTML = '<p class="muted">' + esc(lastErr) + '</p>'; return;
-    }
+    box.innerHTML = '<p class="muted">' + esc(err.message) + '</p>'; return;
   }
   if (!items.length) { box.innerHTML = '<p class="muted">No results found.</p>'; return; }
   box.innerHTML = items.map(function(it, i){
-    return '<div class="jikan-card"><img src="'+esc(it.cover||'')+'" alt=""><div style="flex:1;min-width:0"><b>'+esc(it.title)+'</b><br><span class="muted">'+esc(it.status||'')+' · ★ '+(it.score||'–')+(it.author ? ' · ' + esc(it.author) : '')+'</span><br><span class="muted">'+esc((it.synopsis||'').slice(0,140))+'</span></div>'
+    var cov = it.cover || '';
+    var covFb = cov.replace(/\.512\.jpg$/, '');
+    var imgTag = cov ? '<img src="'+esc(cov)+'" data-fb="'+esc(covFb)+'" onerror="var f=this.getAttribute(\'data-fb\'); if(f && this.src!==f){this.src=f;} else {this.style.display=\'none\';}" alt="">' : '';
+    return '<div class="jikan-card">'+imgTag+'<div style=<div style="flex:1;min-width:0"><b>'+esc(it.title)+'</b><br><span class="muted">'+esc(it.status||'')+' · ★ '+(it.score||'–')+(it.author ? ' · ' + esc(it.author) : '')+'</span><br><span class="muted">'+esc((it.synopsis||'').slice(0,140))+'</span></div>'
     + '<button class="act" data-import="'+i+'">Import</button></div>';
   }).join('');
   box.querySelectorAll('[data-import]').forEach(function(btn){ btn.addEventListener('click', async function(){

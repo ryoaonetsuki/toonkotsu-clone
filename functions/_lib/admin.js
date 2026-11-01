@@ -343,14 +343,14 @@ export async function adminHandler(context) {
     };
     metaColumns().forEach((k, i) => { row[k] = metaValues(meta)[i]; });
     await sbInsert(env, "manga", [row]);
-    await logAction(env, user.email, `Imported manga “${title}” from MyAnimeList`);
+    await logAction(env, user.email, `Imported manga “${title}”`);
     return json({ ok: true, id });
   }
 
   // ---- import search proxy (Jikan / MangaDex / AniList, server-side) ----
   if (parts[0] === "import-search" && method === "GET") {
     if (!isAdmin && !isMod) return forbidden();
-    const source = (url.searchParams.get("source") || "jikan").toLowerCase();
+    const source = (url.searchParams.get("source") || "mangadex").toLowerCase();
     const mode = (url.searchParams.get("mode") || "title").toLowerCase();
     const q = (url.searchParams.get("q") || "").trim();
     if (!q) return json({ error: "Search text is required." }, 400);
@@ -367,33 +367,6 @@ export async function adminHandler(context) {
       return "Ongoing";
     };
     try {
-      if (source === "jikan") {
-        const endpoint = mode === "id"
-          ? `https://api.jikan.moe/v4/manga/${encodeURIComponent(q)}`
-          : `https://api.jikan.moe/v4/manga?q=${encodeURIComponent(q)}&limit=8&order_by=members&sort=desc`;
-        const { res, data } = await fetchJson(endpoint);
-        if (res.status === 429) return json({ error: "Jikan is limiting requests right now. Please wait a minute and try again." }, 429);
-        if (!res.ok) return json({ error: "No result found for this search." }, 502);
-        const raw = mode === "id" ? (data.data ? [data.data] : []) : (data.data || []);
-        const items = raw.map((it) => ({
-          title: it.title || it.title_english || "",
-          cover: it.images && it.images.jpg ? it.images.jpg.image_url : "",
-          synopsis: it.synopsis || "",
-          status: mapStatus(it.status),
-          type: it.type || "Manga",
-          score: it.score || 0,
-          year: it.published && it.published.from ? new Date(it.published.from).getFullYear() : (it.year || 2020),
-          genres: (it.genres || []).map((g) => g.name),
-          author: (it.authors || []).map((a) => a.name).join(", "),
-          artist: "",
-          content_rating: undefined,
-          alt_titles: { en: it.title_english ? [it.title_english] : [] },
-          studio: "",
-          start_year: it.published && it.published.from ? new Date(it.published.from).getFullYear() : null,
-          source_id: String(it.mal_id || ""),
-        }));
-        return json({ items });
-      }
       if (source === "mangadex") {
         const base = "https://api.mangadex.org/manga";
         const endpoint = mode === "id"
@@ -432,33 +405,45 @@ export async function adminHandler(context) {
         });
         return json({ items });
       }
-      if (source === "anilist") {
-        const query = `query ($search: String, $id: Int, $perPage: Int) { Page(perPage: $perPage) { media(search: $search, id: $id, type: MANGA) { id title { romaji english native } coverImage { large } description status chapters averageScore startDate { year } genres staff { edges { node { name { full } } role } } countryOfOrigin } } }`;
-        const variables = mode === "id" ? { id: parseInt(q, 10), perPage: 1 } : { search: q, perPage: 8 };
-        if (mode === "id" && !Number.isFinite(variables.id)) return json({ error: "AniList ID must be a number." }, 400);
-        const { res, data } = await fetchJson("https://graphql.anilist.co", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query, variables }) });
-        if (res.status === 429) return json({ error: "AniList is limiting requests right now. Please wait a minute and try again." }, 429);
-        if (!res.ok) {
-          const detail = data && data.errors && data.errors[0] && data.errors[0].message ? String(data.errors[0].message) : ("HTTP " + res.status);
-          return json({ error: "AniList error: " + detail }, 502);
-        }
-        const list = (data.data && data.data.Page && data.data.Page.media) || [];
-        const items = list.map((m) => {
-          const staff = (m.staff && m.staff.edges) || [];
-          const author = staff.filter((s) => /story/i.test(s.role || "")).map((s) => s.node.name && s.node.name.full).filter(Boolean).join(", ");
-          const artist = staff.filter((s) => /art/i.test(s.role || "")).map((s) => s.node.name && s.node.name.full).filter(Boolean).join(", ");
-          const st = m.status === "FINISHED" ? "Complete" : m.status === "HIATUS" ? "Hiatus" : "Ongoing";
-          const country = (m.countryOfOrigin || "JP").toUpperCase();
-          const type = country === "KR" ? "Manhwa" : country === "CN" ? "Manhua" : "Manga";
+      if (source === "mangaupdates") {
+        const stripMd = (t) => String(t || "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\*\*/g, "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+        const muStatus = (rec) => {
+          if (rec.completed === true) return "Complete";
+          const st = String(rec.status || "");
+          if (/complete/i.test(st)) return "Complete";
+          if (/hiatus/i.test(st)) return "Hiatus";
+          return "Ongoing";
+        };
+        const muMap = (rec) => {
+          const img = rec.image && rec.image.url ? (rec.image.url.thumb || rec.image.url.original || "") : "";
+          const authors = Array.isArray(rec.authors) ? rec.authors : [];
           return {
-            title: m.title.english || m.title.romaji || "", cover: m.coverImage ? m.coverImage.large : "",
-            synopsis: stripHtml(m.description), status: st, type, score: m.averageScore ? Math.round(m.averageScore) / 10 : 0,
-            year: m.startDate ? m.startDate.year : 2020, genres: m.genres || [], author, artist,
+            title: rec.title || "",
+            cover: img,
+            synopsis: stripMd(rec.description),
+            status: muStatus(rec),
+            type: rec.type || "Manga",
+            score: rec.bayesian_rating ? Math.round(Number(rec.bayesian_rating) * 10) / 10 : 0,
+            year: rec.year || 2020,
+            genres: (rec.genres || []).map((g) => (typeof g === "string" ? g : g.genre)).filter(Boolean),
+            author: authors.filter((a) => /author/i.test(a.type || "")).map((a) => a.name).filter(Boolean).join(", "),
+            artist: authors.filter((a) => /artist/i.test(a.type || "")).map((a) => a.name).filter(Boolean).join(", "),
             content_rating: undefined,
-            alt_titles: { en: m.title.english ? [m.title.english] : [], ja: m.title.native ? [m.title.native] : [] },
-            studio: "", start_year: m.startDate ? m.startDate.year : null, source_id: String(m.id),
+            alt_titles: {},
+            studio: "",
+            start_year: rec.year || null,
+            source_id: String(rec.series_id || ""),
           };
-        });
+        };
+        if (mode === "id") {
+          if (!/^\d+$/.test(q)) return json({ error: "MangaUpdates ID must be a number." }, 400);
+          const { res, data } = await fetchJson(`https://api.mangaupdates.com/v1/series/${encodeURIComponent(q)}`);
+          if (!res.ok) return json({ error: "No result found for this search." }, 502);
+          return json({ items: [muMap(data)] });
+        }
+        const { res, data } = await fetchJson("https://api.mangaupdates.com/v1/series/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ search: q, page: 1, perpage: 8 }) });
+        if (!res.ok) return json({ error: "No result found for this search." }, 502);
+        const items = ((data && data.results) || []).map((r) => muMap(r.record || {})).filter((it) => it.title);
         return json({ items });
       }
       return json({ error: "Unknown import source." }, 400);

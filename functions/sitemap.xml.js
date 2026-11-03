@@ -1,6 +1,7 @@
 import allFallback from "./_data/all.js";
 import { sbSelect } from "./_lib/supabase.js";
 
+const BASE = "https://toonkotsu-app.pages.dev";
 const DISCOVER = ["new", "trending", "completed", "seasonal", "gems"];
 
 function esc(s) {
@@ -8,9 +9,6 @@ function esc(s) {
 }
 
 export async function onRequest(context) {
-  // Template: the sitemap base is the request's own origin, so a deployment
-  // never needs a code edit to point the sitemap at its own domain.
-  const BASE = new URL(context.request.url).origin;
   const today = new Date().toISOString().slice(0, 10);
   let titles = [];
   if (context.env.SUPABASE_URL) {

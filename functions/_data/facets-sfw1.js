@@ -1,1 +1,1 @@
-export default {"genres":[]};
+export default {"genres": [{"name": "Romance", "count": 1837}, {"name": "Drama", "count": 1837}, {"name": "Fantasy", "count": 1837}, {"name": "Comedy", "count": 1837}, {"name": "Action", "count": 1837}, {"name": "Supernatural", "count": 1837}, {"name": "School", "count": 1837}, {"name": "Slice of Life", "count": 1837}, {"name": "Mystery", "count": 1837}, {"name": "Historical", "count": 1837}, {"name": "Horror", "count": 1837}, {"name": "Thriller", "count": 1837}]};

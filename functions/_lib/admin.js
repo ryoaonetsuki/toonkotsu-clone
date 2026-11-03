@@ -1,5 +1,7 @@
 import { json, getSessionUser, canWrite, logAction, getSettings, seriesFromRow, slugify, chapterStats, sessionCookies, normalizeChapterLanguage, mangaTranslationLanguage, SESSION_MAX_AGE_SEC } from "./db.js";
-import { sbSelect, sbInsert, sbUpdate, sbDelete, sbUpsert, sbCount, sbAuthTokenSignIn, sbAuthAdminCreateUser, resolveEmail } from "./supabase.js";
+import { sbSelect, sbInsert, sbUpdate, sbDelete, sbUpsert, sbCount, sbAuthAdminCreateUser } from "./supabase.js";
+import { registerUser, passwordLogin, resendConfirmation, otpDisabledError } from "./code-auth.js";
+import { allowedEmailError, isEmailNotConfirmedError, checkResendRateLimit } from "./email-policy.js";
 
 function noDb() { return json({ error: "Database is not configured." }, 503); }
 function needAuth() { return json({ error: "Please log in." }, 401); }
@@ -66,44 +68,58 @@ export async function adminHandler(context) {
   const method = request.method;
   if (!hasDb(env)) return noDb();
 
-  // ---- auth routes (Supabase Auth) ----
+  // ---- auth routes (Supabase Auth) — FINAL design, OTP OFF ----
+  // ADMIN LOGIN is identical to normal login: username/email +
+  // password, password CHECKED, persistent (365-day) session issued
+  // at once for a verified account. No OTP on first login, no OTP
+  // after a manual logout. An unconfirmed account gets
+  // requires_verification pointing to /verify-email/. Role is gated
+  // by the panel (getSessionUser + isAdmin checks below), not here.
   if (parts[0] === "login" && method === "POST") {
     const body = await bodyJson(request);
-    const email = String(body.identifier || body.email || "").trim().toLowerCase();
+    const identifier = String(body.identifier || body.email || body.username || "");
     const password = String(body.password || "");
-    if (!email || !password) return json({ error: "Email and password are required." }, 400);
-    let tokens;
     try {
-      tokens = await sbAuthTokenSignIn(env, email, password);
+      const r = await passwordLogin(env, request, { identifier, password });
+      if (r.requires_verification) return json({ ok: true, requires_verification: true, email: r.email, error: "email_not_confirmed", next: r.next });
+      return json({ ok: true, user: { id: r.profile.id, email: r.profile.email, role: r.profile.role } }, 200, {
+        setCookies: sessionCookies(r.tokens.access_token, r.tokens.refresh_token, SESSION_MAX_AGE_SEC),
+      });
     } catch (e) {
-      return json({ error: "Invalid email or password." }, 401);
+      return json({ error: e.message || "Invalid username/email or password." }, e.status || 401);
     }
-    const profile = await sbSelect(env, "profiles", { columns: "*", eq: { id: tokens.user.id }, single: true }).catch(() => null);
-    if (!profile) return json({ error: "Invalid email or password." }, 401);
-    if (profile.banned) return json({ error: "This account is banned." }, 403);
-    await logAction(env, profile.email, "Logged in");
-    return json({ ok: true, user: { id: profile.id, email: profile.email, role: profile.role } }, 200, {
-      setCookies: sessionCookies(tokens.access_token, tokens.refresh_token, SESSION_MAX_AGE_SEC),
-    });
   }
+  // Admin-bridge register: same as public registration — email +
+  // username + password, account created unconfirmed, Supabase FREE
+  // confirm-email magic link sent. (Promoting the verified account to
+  // admin is a separate DB step.)
   if (parts[0] === "register" && method === "POST") {
     const body = await bodyJson(request);
     const email = String(body.email || "").trim().toLowerCase();
+    const username = String(body.username || "").trim();
     const password = String(body.password || "");
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "A valid email address is required." }, 400);
-    if (password.length < 6) return json({ error: "Password must be at least 6 characters." }, 400);
-    const dup = await sbSelect(env, "profiles", { columns: "id", eq: { email }, single: true }).catch(() => null);
-    if (dup) return json({ error: "An account with this email already exists. Please log in instead." }, 409);
-    let created;
     try {
-      created = await sbAuthAdminCreateUser(env, email, password, {});
+      const r = await registerUser(env, request, { email, username: username.includes("@") ? email.split("@")[0] : username, password });
+      return json({ ok: true, requires_verification: true, email: r.email, email_sent: r.email_sent, next: "/verify-email/?email=" + encodeURIComponent(r.email) });
     } catch (e) {
-      if (String(e.message || "").toLowerCase().includes("already")) return json({ error: "An account with this email already exists. Please log in instead." }, 409);
-      return json({ error: "Registration failed. Please try again." }, 500);
+      return json({ error: e.message || "Registration failed." }, e.status || 400);
     }
-    await sbInsert(env, "profiles", [{ id: created.id, email, role: "user", created_at: Date.now() }]).catch(() => {});
-    await logAction(env, email, "Registered a new account");
-    return json({ ok: true });
+  }
+  // OTP is DISABLED (owner order, 2026-11-03): these routes no longer
+  // send or check any code. Use resend-confirmation for the magic link.
+  if ((parts[0] === "resend" || parts[0] === "send-code" || parts[0] === "verify-code") && method === "POST") {
+    const e = otpDisabledError();
+    return json({ error: e.message }, e.status);
+  }
+  if (parts[0] === "resend-confirmation" && method === "POST") {
+    const body = await bodyJson(request);
+    const email = String(body.email || "").trim().toLowerCase();
+    try {
+      const r = await resendConfirmation(env, request, email);
+      return json({ ok: true, email: r.email, already_verified: r.already_verified, message: r.already_verified ? "This email is already verified. You can log in." : "A verification email has been sent. Click the link in it." });
+    } catch (e) {
+      return json({ error: e.message || "Could not send the verification email." }, e.status || 500);
+    }
   }
   if (parts[0] === "logout" && method === "POST") {
     const user = await getSessionUser(env, request);
@@ -649,6 +665,12 @@ export async function adminHandler(context) {
     const email = String(b.email || "").trim();
     const role = b.role === "moderator" ? "moderator" : "user";
     if (!email || !b.password) return json({ error: "Email and password are required." }, 400);
+    const domainErr = allowedEmailError(email);
+    if (domainErr) return json({ error: domainErr }, 400);
+    // Panel-created accounts are pending verification (email_confirm:
+    // false). They verify by clicking Supabase's FREE confirm-email
+    // magic link (resend it from /verify-email/) and then log in with
+    // username/email + password. No code is involved, ever.
     try {
       const created = await sbAuthAdminCreateUser(env, email, String(b.password), {});
       await sbInsert(env, "profiles", [{ id: created.id, email, role, created_at: Date.now() }]);

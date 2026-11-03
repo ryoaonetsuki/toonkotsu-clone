@@ -1,15 +1,26 @@
 import { json, getSessionUser, sessionCookies, getSettings, uploadAvatarDataUrl, SESSION_MAX_AGE_SEC, persistRefreshedSession } from "../_lib/db.js";
-import { sbSelect, sbInsert, sbAuthTokenSignIn, sbAuthAdminCreateUser, resolveEmail } from "../_lib/supabase.js";
+import { sbSelect, sbInsert } from "../_lib/supabase.js";
+import { allowedEmailError } from "../_lib/email-policy.js";
+import { registerUser, passwordLogin, resendConfirmation, checkVerified, otpDisabledError } from "../_lib/code-auth.js";
 
-// SPA auth protocol (the original app's own routes, old design):
+// Auth protocol — FINAL design (2026-11-03, OTP OFF):
 //   GET  /auth/providers  -> { signup: true }
-//   POST /auth/login      { identifier, password } -> session cookie
-//   POST /auth/register   { username, password, token } -> creates account
+//   POST /auth/register   { email, username, password } -> account
+//        created unconfirmed + Supabase FREE confirm-email magic link
+//        sent; user clicks the link, returns to /verify-email/, then
+//        logs in with username/email + password.
+//   POST /auth/login      { identifier/email/username, password } ->
+//        password CHECKED; verified user gets a persistent (365-day)
+//        session at once; unconfirmed user gets requires_verification
+//        pointing to /verify-email/. No OTP, for any role.
+//   POST /auth/resend-confirmation { email } -> re-sends the link.
+//   POST /auth/check-verified { email } -> { verified: true/false }.
+//   POST /auth/send-code, /auth/verify-code, /auth/resend -> 410,
+//        OTP is disabled.
 //   GET  /auth/me         -> { user: {...} | null }
 //   POST /auth/logout     -> clears session
-// GET on /auth/login and /auth/register serves the SPA shell so the FIRST
-// load already renders the original (old) SPA auth design — no static
-// auth-page copy exists anymore, so first load and refresh are identical.
+// GET on /auth/login and /auth/register serves the SPA shell; the
+// canonical register entry is the standalone page /verify-email/.
 
 function hasDb(env) { return Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_KEY); }
 
@@ -22,6 +33,12 @@ async function handleRequest(context) {
   const parts = context.params.path || [];
   const method = request.method;
 
+  if (method === "GET" && parts[0] === "verify") {
+    // Legacy path: the static verify page lives at /verify-email/ (a
+    // /auth/* static file is shadowed by this function route and served empty).
+    return Response.redirect(new URL("/verify-email/" + (new URL(request.url).search || ""), request.url), 302);
+  }
+
   if (method === "GET" && (parts[0] === "login" || parts[0] === "register") && !parts[1]) {
     // Fetch "/" (not "/index.html": Pages answers /index.html with a 308
     // redirect to /, whose body is empty — that was serving blank pages).
@@ -29,9 +46,9 @@ async function handleRequest(context) {
     let html = await shell.text();
     // Inject the LIVE Settings name/logo into the shell before serving it.
     // The SPA reads the site name from meta[name="application-name"] at chunk
-    // load (falling back to the baked "BongManga"), which is why auth pages
+    // load (falling back to the baked "Aonetsuki"), which is why auth pages
     // kept the old name after a Settings change while the shell script only
-    // rewrote header text and titles starting with "BongManga".
+    // rewrote header text and titles starting with "Aonetsuki".
     try {
       const st = await getSettings(env);
       const name = (st.site_name || "").trim();
@@ -66,62 +83,77 @@ async function handleRequest(context) {
     return json({ user: u ? { id: u.id, email: u.email, name: uname, username: uname, displayName: uname, avatar: u.avatar || null, role: u.role } : null });
   }
 
+  // FINAL: password login. The password is CHECKED (never ignored).
+  // Verified users (any role) get a persistent session at once, no OTP.
+  // Unconfirmed users are rejected with requires_verification pointing
+  // to the Verify Your Email page.
   if (parts[0] === "login" && method === "POST") {
     let body = {};
     try { body = await request.json(); } catch { body = {}; }
-    const ident = String(body.identifier || body.email || body.username || "").trim().toLowerCase();
+    const identifier = String(body.identifier || body.email || body.username || "");
     const password = String(body.password || "");
-    if (!ident || !password) return json({ error: "Email and password are required." }, 400);
-    const email = await resolveEmail(env, ident);
-    let tokens;
     try {
-      tokens = await sbAuthTokenSignIn(env, email, password);
-    } catch {
-      return json({ error: "Wrong username or password." }, 401);
+      const r = await passwordLogin(env, request, { identifier, password });
+      if (r.requires_verification) return json({ ok: true, requires_verification: true, email: r.email, error: "email_not_confirmed", next: r.next });
+      const profile = r.profile;
+      const uname = profile.name || (profile.email ? profile.email.split("@")[0] : null);
+      return json({ user: { id: profile.id, email: profile.email, name: uname, username: uname, displayName: uname, role: profile.role } }, 200, {
+        setCookies: sessionCookies(r.tokens.access_token, r.tokens.refresh_token, SESSION_MAX_AGE_SEC),
+      });
+    } catch (e) {
+      return json({ error: e.message || "Invalid username/email or password." }, e.status || 401);
     }
-    const profile = await sbSelect(env, "profiles", { columns: "*", eq: { id: tokens.user.id }, single: true }).catch(() => null);
-    if (!profile) return json({ error: "Wrong username or password." }, 401);
-    if (profile.banned) return json({ error: "This account is banned." }, 403);
-    const uname = profile.name || (profile.email ? profile.email.split("@")[0] : null);
-    return json({ user: { id: profile.id, email: profile.email, name: uname, username: uname, displayName: uname, role: profile.role } }, 200, {
-      setCookies: sessionCookies(tokens.access_token, tokens.refresh_token, SESSION_MAX_AGE_SEC),
-    });
   }
 
+  // FINAL: registration — email + username + password, account created
+  // unconfirmed, Supabase FREE confirm-email magic link sent. The user
+  // clicks the link, returns to /verify-email/ verified, then logs in
+  // with username/email + password. No code is sent or entered.
   if (parts[0] === "register" && method === "POST") {
     let body = {};
     try { body = await request.json(); } catch { body = {}; }
-    const username = String(body.username || body.email || "").trim();
+    const email = String(body.email || (String(body.username || "").includes("@") ? body.username : "") || "").trim().toLowerCase();
+    const username = String(body.username || "").trim();
     const password = String(body.password || "");
-    if (!username || password.length < 6) return json({ error: "A username and a password of at least 6 characters are required." }, 400);
-    const email = username.includes("@") ? username.toLowerCase() : username.toLowerCase() + "@users.aonetsuki.local";
-    // Display name: the real name shown after login (header/profile).
-    // Empty -> fall back to the username, exactly like before.
-    const displayName = String(body.display_name || body.displayName || "").trim().slice(0, 100) || (username.includes("@") ? null : username);
-    const name = displayName;
-    // Profile picture (file upload only, never URL paste): upload to ImgBB
-    // BEFORE creating the account, so a failed upload never leaves a
-    // half-complete account without its picture.
-    let avatarUrl = null;
-    if (body.avatar_data) {
-      const up = await uploadAvatarDataUrl(env, body.avatar_data);
-      if (up.error) return json({ error: up.error }, 400);
-      avatarUrl = up.url;
-    }
-    const dup = await sbSelect(env, "profiles", { columns: "id", eq: { email }, single: true }).catch(() => null);
-    if (dup) return json({ error: "An account with this name already exists. Please log in instead." }, 409);
-    let created;
     try {
-      const meta = {};
-      if (name) meta.display_name = name;
-      if (avatarUrl) meta.avatar_url = avatarUrl;
-      created = await sbAuthAdminCreateUser(env, email, password, meta);
-    } catch {
-      return json({ error: "Registration failed. Please try again." }, 500);
+      const r = await registerUser(env, request, { email, username: username.includes("@") ? email.split("@")[0] : username, password, avatarUrl: body.avatar_url || body.avatar || null });
+      return json({ ok: true, requires_verification: true, email: r.email, email_sent: r.email_sent, next: "/verify-email/?email=" + encodeURIComponent(r.email) });
+    } catch (e) {
+      return json({ error: e.message || "Registration failed." }, e.status || 400);
     }
-    await sbInsert(env, "profiles", [{ id: created.id, email, name, role: "user", created_at: Date.now() }]).catch(() => {});
-    return json({ ok: true, user: { id: created.id, email, name, username: name, displayName: name, avatar: avatarUrl, role: "user" } });
   }
+
+  // OTP is DISABLED (owner order, 2026-11-03): these routes no longer
+  // send or check any code. Use resend-confirmation for the magic link.
+  if ((parts[0] === "resend" || parts[0] === "send-code" || parts[0] === "verify-code") && method === "POST") {
+    const e = otpDisabledError();
+    return json({ error: e.message }, e.status);
+  }
+
+  if (parts[0] === "resend-confirmation" && method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch { body = {}; }
+    const email = String(body.email || "").trim().toLowerCase();
+    try {
+      const r = await resendConfirmation(env, request, email);
+      return json({ ok: true, email: r.email, already_verified: r.already_verified, message: r.already_verified ? "This email is already verified. You can log in." : "A verification email has been sent. Click the link in it." });
+    } catch (e) {
+      return json({ error: e.message || "Could not send the verification email." }, e.status || 500);
+    }
+  }
+
+  if (parts[0] === "check-verified" && method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch { body = {}; }
+    const email = String(body.email || "").trim().toLowerCase();
+    try {
+      const r = await checkVerified(env, email);
+      return json({ ok: true, email: r.email, verified: r.verified });
+    } catch (e) {
+      return json({ error: e.message || "Could not check verification status." }, e.status || 404);
+    }
+  }
+
 
   if (parts[0] === "logout" && method === "POST") {
     return json({ ok: true }, 200, { setCookies: sessionCookies(null, null, 0) });

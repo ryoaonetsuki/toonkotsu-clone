@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin Login — Aonetsuki</title>
+<title>Admin Login — BongManga</title>
 <link rel="icon" href="/logo.png">
 <style>
 :root{--bg:#0a0a0d;--panel:#121216;--line:#26262f;--text:#f5f5f6;--muted:#9b9ba6;--red:#e11d2e}
@@ -30,49 +30,35 @@ input:focus{border-color:var(--red)}
 </head>
 <body>
 <header class="topbar">
-  <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit"><img class="logo" src="/logo.png" alt="Aonetsuki logo"><span class="brand">Aonetsuki<i>.</i></span></a>
+  <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit"><img class="logo" src="/logo.png" alt="BongManga logo"><span class="brand">BongManga<i>.</i></span></a>
   <span class="badge">ADMIN</span>
   <div class="spacer"></div>
 </header>
 <div class="wrap">
   <div class="card">
-    <img class="logo-big" src="/logo.png" alt="Aonetsuki logo">
+    <img class="logo-big" src="/logo.png" alt="BongManga logo">
     <h1>Admin Login</h1>
-    <p class="sub">Log in with your username/email and password. If your email is not verified yet, you will be sent to the Verify Your Email page first.</p>
-    <!-- FINAL (2026-11-03, OTP OFF): username/email + password only.
-         No code field anywhere on this page. -->
+    <p class="sub">Sign in to manage the site.</p>
     <form id="loginForm">
-      <label for="identifier">Username or email</label>
-      <input id="identifier" type="text" autocomplete="username" required>
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="username" required>
       <label for="password">Password</label>
       <input id="password" type="password" autocomplete="current-password" required>
       <button class="btn" id="loginBtn" type="submit">Log in</button>
       <div class="err" id="errBox"></div>
-      <a class="backlink" id="verifyLink" href="/verify-email/" style="display:none">Your email is not verified yet — open the Verify Your Email page</a>
     </form>
   </div>
 </div>
 <script>
 document.getElementById('loginForm').addEventListener('submit', async function(e){
   e.preventDefault();
-  var btn = document.getElementById('loginBtn'); var err = document.getElementById('errBox');
-  var verifyLink = document.getElementById('verifyLink');
-  btn.disabled = true; btn.textContent = 'Logging in…'; err.style.display = 'none'; verifyLink.style.display = 'none';
+  var btn = document.getElementById('loginBtn');
+  var err = document.getElementById('errBox');
+  btn.disabled = true; btn.textContent = 'Signing in…'; err.style.display = 'none';
   try {
-    var identifier = document.getElementById('identifier').value.trim();
-    var password = document.getElementById('password').value;
-    var res = await fetch('/api/admin/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ identifier: identifier, password: password }) });
+    var res = await fetch('/api/admin/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: document.getElementById('email').value.trim(), password: document.getElementById('password').value }) });
     var data = await res.json().catch(function(){ return {}; });
-    if (!res.ok) throw new Error(data.error || 'Invalid username/email or password.');
-    if (data.requires_verification) {
-      err.textContent = 'Your email is not verified yet. Click the verification link sent to your email first.';
-      err.style.display = 'block';
-      verifyLink.href = '/verify-email/?email=' + encodeURIComponent(data.email || identifier);
-      verifyLink.style.display = 'block';
-      btn.disabled = false; btn.textContent = 'Log in';
-      return;
-    }
-    if (!data.user || (data.user.role !== 'admin' && data.user.role !== 'moderator')) throw new Error('Signed in, but this account is not an admin.');
+    if (!res.ok) throw new Error(data.error || 'Login failed. Please try again.');
     location.href = '/admin/panel/';
   } catch (ex) {
     err.textContent = ex.message; err.style.display = 'block';
@@ -81,14 +67,14 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
 });
 </script>
 
-<footer style="text-align:center;color:#9b9ba6;font-size:12px;padding:12px">© 2026 Aonetsuki.</footer>
+<footer style="text-align:center;color:#9b9ba6;font-size:12px;padding:12px">© 2026 BongManga.</footer>
 <script>
 fetch('/api/site-settings').then(function(r){ return r.json(); }).then(function(st){
   if (st.logo_url) document.querySelectorAll('img.logo, img.logo-big').forEach(function(img){ img.src = st.logo_url; });
   if (st.site_name) {
     document.querySelectorAll('.brand').forEach(function(b){ b.innerHTML = st.site_name.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '<i>.</i>'; });
-    document.title = document.title.replace('Aonetsuki', st.site_name);
-    var foot = document.querySelector('footer'); if (foot) foot.innerHTML = foot.innerHTML.replace('Aonetsuki', st.site_name.replace(/&/g,'&amp;').replace(/</g,'&lt;'));
+    document.title = document.title.replace('BongManga', st.site_name);
+    var foot = document.querySelector('footer'); if (foot) foot.innerHTML = foot.innerHTML.replace('BongManga', st.site_name.replace(/&/g,'&amp;').replace(/</g,'&lt;'));
   }
 }).catch(function(){});
 </script>

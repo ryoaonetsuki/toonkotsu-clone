@@ -15,14 +15,10 @@ export function json(data, status = 200, extra = {}) {
 
 export { parseCookies };
 
-// Session lifetime, owner order (revised 2026-11-03): PERSISTENT until
-// manual logout. Both cookies live 365 days; refresh re-issues with the
-// same long age (see persistRefreshedSession). Only an explicit logout
-// (Max-Age=0) clears them. Honest limit: if Supabase itself revokes or
-// expires a refresh token (project Auth settings / rotation), that
-// session still ends — the cookie cannot outlive Supabase's token.
-export const SESSION_MAX_AGE_SEC = 365 * 86400;
-export const REFRESH_MAX_AGE_SEC = 365 * 86400;
+// Session lifetime, owner order 2026-11-01: stay logged in 3 days.
+// (The old 1-hour session cookie logged the admin out on every return visit.)
+export const SESSION_MAX_AGE_SEC = 3 * 86400;
+export const REFRESH_MAX_AGE_SEC = 7 * 86400;
 
 export function sessionCookies(accessToken, refreshToken, maxAgeSec) {
   const base = "Path=/; HttpOnly; SameSite=Lax; Secure";
@@ -54,13 +50,6 @@ export async function getSessionUser(env, req) {
     }
   }
   if (!authUser) return null;
-  // Email-verification gate (FINAL design, 2026-11-03, OTP OFF): a
-  // session is issued only by a password login for an already
-  // verified account. Defence in depth: an account whose Supabase
-  // email is still unconfirmed (the confirmation link never clicked)
-  // has NO session here, even if it somehow holds cookies. This
-  // covers every session route including the admin panel.
-  if (!authUser.email_confirmed_at) return null;
   try {
     const profile = await sbSelect(env, "profiles", { columns: "*", eq: { id: authUser.id }, single: true });
     const avatar = (authUser.user_metadata && authUser.user_metadata.avatar_url) || null;
@@ -149,23 +138,13 @@ export async function uploadAvatarDataUrl(env, dataUrl) {
 
 // Banner files: the five spotlight banners, keyed by their hosted URL so the
 // API can serve the same-origin local file first and keep the hosted URL as fallback.
-const BANNER_MAP = {
-  "https://i.ibb.co/bMXRfdKN/68ef0df352c4.jpg": "/yae/banners/banner1.jpg",
-  "https://i.ibb.co/HLmFNp5P/2971501faa82.jpg": "/yae/banners/banner2.jpg",
-  "https://i.ibb.co/dsZ3p9pt/081716a80582.jpg": "/yae/banners/banner3.jpg",
-  "https://i.ibb.co/mCM3JN75/e7fe325c425a.jpg": "/yae/banners/banner4.jpg",
-  "https://i.ibb.co/23HpKBJ0/f23e4ada2171.jpg": "/yae/banners/banner5.jpg",
-};
+// Template: no seed banner files ship with this template.
+const BANNER_MAP = {};
 
 // Local chapter page files in reading order (numeric order). Chapter 1 skips
 // image 2 and chapter 4 skips image 12 because those files do not exist.
-const LOCAL_CHAPTER_FILES = {
-  1: [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
-  2: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
-  3: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
-  4: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16],
-  5: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-};
+// Template: no seed chapter files ship with this template.
+const LOCAL_CHAPTER_FILES = {};
 
 export function localChapterPages(chapterN, pages) {
   const files = LOCAL_CHAPTER_FILES[chapterN];

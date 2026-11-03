@@ -66,13 +66,13 @@
 			   the variable fallback above. */
 			html:not([data-ui-theme=light]) .b-spot__actions .b-btn--light{background:#fff!important;color:#0a0810!important}
 		</style>
-		<title>What&#39;s new - Aonetsuki</title>
-		<meta name="description" content="Dated changes to the Aonetsuki reader and website." />
+		<title>What&#39;s new - BongManga</title>
+		<meta name="description" content="Dated changes to the BongManga reader and website." />
 		<link rel="canonical" href="/whats-new" />
-		<meta property="og:site_name" content="Aonetsuki" />
+		<meta property="og:site_name" content="BongManga" />
 		<meta property="og:type" content="website" />
 		<meta property="og:title" content="What&#39;s new" />
-		<meta property="og:description" content="Dated changes to the Aonetsuki reader and website." />
+		<meta property="og:description" content="Dated changes to the BongManga reader and website." />
 		<meta property="og:url" content="/whats-new" />
 		<meta property="og:image" content="/og-image.jpg" />
 		<meta name="twitter:image" content="/og-image.jpg" />
@@ -80,7 +80,7 @@
 		<meta property="og:image:width" content="1200" />
 		<meta property="og:image:height" content="630" />
 		<meta name="twitter:card" content="summary_large_image" />
-		<meta name="application-name" content="Aonetsuki" />
+		<meta name="application-name" content="BongManga" />
 		<link href="/_app/immutable/entry/start.BKpRbCGa.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/CcQSughZ.js" rel="modulepreload">
 		<link href="/_app/immutable/chunks/BLSgv8pE.js" rel="modulepreload">
@@ -138,13 +138,13 @@
     var socials = Object.keys(links).map(function(k){ return { label: k, url: links[k] }; }).filter(function(x){ return x.url; });
     function apply(){
       removeDesignSwitch();
-      if (name && name !== "Aonetsuki") {
-        if (document.title.indexOf("Aonetsuki") !== -1) document.title = document.title.split("Aonetsuki").join(name);
+      if (name && name !== "BongManga") {
+        if (document.title.indexOf("BongManga") !== -1) document.title = document.title.split("BongManga").join(name);
         var og = document.querySelector('meta[property="og:site_name"]'); if (og) og.setAttribute("content", name);
         var appName = document.querySelector('meta[name="application-name"]'); if (appName) appName.setAttribute("content", name);
         var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
         var nodes = []; while (w.nextNode()) nodes.push(w.currentNode);
-        nodes.forEach(function(n){ if (n.nodeValue.trim() === "Aonetsuki") n.nodeValue = n.nodeValue.replace("Aonetsuki", name); });
+        nodes.forEach(function(n){ if (n.nodeValue.trim() === "BongManga") n.nodeValue = n.nodeValue.replace("BongManga", name); });
       }
       if (logo) {
         document.querySelectorAll("img").forEach(function(img){
@@ -186,7 +186,7 @@
         var ov = document.createElement("div");
         ov.setAttribute("data-tk-maint", "1");
         ov.style.cssText = "position:fixed;inset:0;z-index:9999;background:#0a0a0d;color:#f5f5f6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center";
-        ov.innerHTML = "<h1 style=\"margin:0\">" + escHtml(name || "Aonetsuki") + "</h1><p style=\"color:#9b9ba6;margin:0\">This site is under maintenance right now. Please check back soon.</p><a href=\"/admin/login/\" style=\"color:#fff;border:1px solid #444;border-radius:99px;padding:10px 20px;text-decoration:none\">Admin login</a>";
+        ov.innerHTML = "<h1 style=\"margin:0\">" + escHtml(name || "BongManga") + "</h1><p style=\"color:#9b9ba6;margin:0\">This site is under maintenance right now. Please check back soon.</p><a href=\"/admin/login/\" style=\"color:#fff;border:1px solid #444;border-radius:99px;padding:10px 20px;text-decoration:none\">Admin login</a>";
         document.body.appendChild(ov);
       }
     }

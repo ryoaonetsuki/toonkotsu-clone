@@ -129,27 +129,16 @@ export async function sbAuthTokenSignIn(env, email, password) {
   if (!res.ok) {
     const err = new Error(data.error_description || data.msg || "Invalid email or password.");
     err.status = res.status === 400 ? 401 : res.status;
-    err.code = data.error_code || data.code || null;
-    err.error_description = data.error_description || null;
     throw err;
   }
   return data; // { access_token, refresh_token, user }
 }
 
-// NOTE: Admin API creation does NOT send a confirmation email by itself.
-// Callers must follow it with sbAuthResendSignup() (below) so the user
-// receives Supabase's FREE confirm-email magic link. email_confirm:false
-// leaves the account unconfirmed until the link is clicked.
 export async function sbAuthAdminCreateUser(env, email, password, metadata = {}) {
   const res = await sbFetch(sbBase(env) + "/auth/v1/admin/users", {
     method: "POST",
     headers: sbHeaders(env),
-    // Email verification (FINAL, 2026-11-03): OTP is OFF. Accounts are
-    // NOT auto-confirmed. email_confirm:false leaves the account
-    // unconfirmed; the user verifies by clicking Supabase's FREE
-    // confirm-email magic link (see sbAuthResendSignup). No session is
-    // issued to an unconfirmed account (see getSessionUser gate).
-    body: JSON.stringify({ email, password, email_confirm: false, user_metadata: metadata }),
+    body: JSON.stringify({ email, password, email_confirm: true, user_metadata: metadata }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -203,13 +192,10 @@ export function sessionCookieHeaders(accessToken, refreshToken, maxAgeSec) {
       ].join(", "),
     };
   }
-  // Persistent session (owner order, revised 2026-11-03): the refresh
-  // cookie lives as long as the session cookie — no auto-logout. Only
-  // an explicit logout (Max-Age=0) or a Supabase-side revocation ends it.
   return {
     "Set-Cookie": [
       "tk_session=" + accessToken + "; " + base + "; Max-Age=" + maxAgeSec,
-      "tk_refresh=" + (refreshToken || "") + "; " + base + "; Max-Age=" + maxAgeSec,
+      "tk_refresh=" + (refreshToken || "") + "; " + base + "; Max-Age=" + (7 * 86400),
     ].join(", "),
   };
 }
@@ -224,53 +210,7 @@ export function parseCookies(req) {
   return out;
 }
 
-// ---- Email verification by Supabase FREE confirm-email magic link ----
-// OTP is OFF (owner order, 2026-11-03). Supabase's free tier sends a
-// confirmation email (magic link) — no custom SMTP, no custom domain.
-// POST /auth/v1/resend with type "signup" sends (or re-sends) that link
-// to an existing unconfirmed user. redirect_to must be allowlisted in
-// Supabase Auth -> URL Configuration (Site URL + Redirect URLs); the
-// caller passes the site's /verify-email/ page so clicking the link
-// brings the user back to the site, where Supabase has already marked
-// the email confirmed and the user then logs in with their password.
-// Note: Admin-API creation alone sends NO email — this call is what
-// actually delivers the link after registration.
-export async function sbAuthResendSignup(env, email, redirectTo) {
-  const res = await sbFetch(sbBase(env) + "/auth/v1/resend", {
-    method: "POST",
-    headers: { apikey: env.SUPABASE_ANON_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "signup", email, redirect_to: redirectTo || undefined }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const err = new Error(data.error_description || data.msg || "Could not send the verification email.");
-    err.status = res.status;
-    err.code = data.error_code || data.code || null;
-    throw err;
-  }
-  return data;
-}
-
-// Check whether an Auth user (by email) is already confirmed, via the
-// Admin API list endpoint. Used by the Verify page's "check" button so
-// a user who clicked the link can confirm their status without guessing.
-export async function sbAuthUserConfirmed(env, email) {
-  const res = await sbFetch(sbBase(env) + "/auth/v1/admin/users?email=" + encodeURIComponent(email), {
-    headers: sbHeaders(env),
-  });
-  if (!res.ok) return null;
-  const data = await res.json().catch(() => ({}));
-  const users = Array.isArray(data.users) ? data.users : (Array.isArray(data) ? data : []);
-  const match = users.find((u) => String(u.email || "").toLowerCase() === String(email).toLowerCase());
-  if (!match) return null;
-  return Boolean(match.email_confirmed_at);
-}
-
 // Resolve a login identifier to an email: email as-is, otherwise a profile name.
-// Returns null when a bare identifier matches no profile — the old fallback
-// that synthesized "@users.aonetsuki.local" is REMOVED (2026-11-03): those
-// addresses can never receive a confirmation email, so they must not be
-// silently created or logged in as.
 export async function resolveEmail(env, identifier) {
   const ident = String(identifier || "").trim().toLowerCase();
   if (ident.includes("@")) return ident;
@@ -278,5 +218,6 @@ export async function resolveEmail(env, identifier) {
     const rows = await sbSelect(env, "profiles", { columns: "email,name", eq: { name: ident } });
     if (rows.length) return rows[0].email;
   } catch {}
-  return null;
+  // Fallback: synthesized local-domain email used at registration for bare usernames.
+  return ident + "@users.aonetsuki.local";
 }

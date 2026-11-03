@@ -3,4 +3,3 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/
 Disallow: /cdn/
-Sitemap: https://toonkotsu-app.pages.dev/sitemap.xml

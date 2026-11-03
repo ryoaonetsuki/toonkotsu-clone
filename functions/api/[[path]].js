@@ -2,9 +2,7 @@ import rankings0Fallback from "../_data/rankings-sfw0.js";
 import rankings1Fallback from "../_data/rankings-sfw1.js";
 import chaptersFallback from "../_data/chapters.js";
 import { json, dbChapter, dbMangaList, dbMangaByCode, localChapterPages, getSettings, getSessionUser, logAction, sessionCookies, uploadAvatarDataUrl, SESSION_MAX_AGE_SEC, persistRefreshedSession } from "../_lib/db.js";
-import { sbSelect, sbInsert, sbUpdate, sbDelete, sbUpsert, sbCount, sbAuthTokenSignIn, sbAuthAdminUpdateUser } from "../_lib/supabase.js";
-import { registerUser, passwordLogin, resendConfirmation, checkVerified, otpDisabledError } from "../_lib/code-auth.js";
-import { allowedEmailError, isEmailNotConfirmedError, checkResendRateLimit } from "../_lib/email-policy.js";
+import { sbSelect, sbInsert, sbUpdate, sbDelete, sbUpsert, sbCount, sbAuthTokenSignIn, sbAuthAdminCreateUser, sbAuthAdminUpdateUser, resolveEmail } from "../_lib/supabase.js";
 import { adminHandler } from "../_lib/admin.js";
 
 function hasDb(env) { return Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_KEY); }
@@ -78,62 +76,60 @@ async function handleRequest(context) {
       return json({ signup: true });
     }
 
-    // FINAL: registration — email + username + password, account
-    // created unconfirmed, Supabase FREE confirm-email magic link
-    // sent. No code is sent or entered, ever.
     if (parts[1] === "register" && method === "POST") {
-      const email = String(body.email || (String(body.username || "").includes("@") ? body.username : "")).trim().toLowerCase();
-      const username = String(body.username || "").trim();
+      // The SPA register form collects a username only (no email field), so accept
+      // bare usernames exactly like the SPA-protocol register does: synthesize the
+      // local-domain email and keep the username as the profile name.
+      const rawUsername = String(body.username || "").trim();
+      const email = String(body.email || (rawUsername.includes("@") ? rawUsername : "") || (rawUsername ? rawUsername.toLowerCase() + "@users.aonetsuki.local" : "")).trim().toLowerCase();
+      // Display name: the real name shown after login (header/profile).
+      // Empty -> fall back to the username, exactly like before.
+      const displayName = String(body.display_name || body.displayName || body.name || "").trim().slice(0, 100);
+      const name = displayName || (rawUsername && !rawUsername.includes("@") ? rawUsername : null);
       const password = String(body.password || "");
-      try {
-        const r = await registerUser(context.env, context.request, { email, username: username.includes("@") ? email.split("@")[0] : username, password });
-        return json({ ok: true, requires_verification: true, email: r.email, email_sent: r.email_sent, next: "/verify-email/?email=" + encodeURIComponent(r.email) });
-      } catch (e) {
-        return json({ error: e.message || "Registration failed." }, e.status || 400);
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "A valid email address is required." }, 400);
+      if (password.length < 6) return json({ error: "Password must be at least 6 characters." }, 400);
+      // Profile picture (file upload only, never URL paste): upload to ImgBB
+      // BEFORE creating the account, so a failed upload never leaves a
+      // half-complete account without its picture.
+      let avatarUrl = null;
+      if (body.avatar_data) {
+        const up = await uploadAvatarDataUrl(context.env, body.avatar_data);
+        if (up.error) return json({ error: up.error }, 400);
+        avatarUrl = up.url;
       }
-    }
-
-    // OTP is DISABLED (owner order, 2026-11-03): these routes no longer
-    // send or check any code. Use resend-confirmation for the magic link.
-    if ((parts[1] === "resend" || parts[1] === "send-code" || parts[1] === "verify-code") && method === "POST") {
-      const e = otpDisabledError();
-      return json({ error: e.message }, e.status);
-    }
-
-    if (parts[1] === "resend-confirmation" && method === "POST") {
-      const email = String(body.email || "").trim().toLowerCase();
+      const dup = await sbSelect(context.env, "profiles", { columns: "id", eq: { email }, single: true }).catch(() => null);
+      if (dup) return json({ error: "An account with this email already exists. Please log in instead." }, 409);
+      let created;
       try {
-        const r = await resendConfirmation(context.env, context.request, email);
-        return json({ ok: true, email: r.email, already_verified: r.already_verified, message: r.already_verified ? "This email is already verified. You can log in." : "A verification email has been sent. Click the link in it." });
-      } catch (e) {
-        return json({ error: e.message || "Could not send the verification email." }, e.status || 500);
+        const meta = {};
+        if (name) meta.display_name = name;
+        if (avatarUrl) meta.avatar_url = avatarUrl;
+        created = await sbAuthAdminCreateUser(context.env, email, password, meta);
+      } catch {
+        return json({ error: "Registration failed. Please try again." }, 500);
       }
+      await sbInsert(context.env, "profiles", [{ id: created.id, email, name, role: "user", created_at: Date.now() }]).catch(() => {});
+      try { await logAction(context.env, email, "Registered a new account"); } catch {}
+      return json({ ok: true, user: { id: created.id, email, name, username: name, displayName: name, avatar: avatarUrl, role: "user" } });
     }
 
-    if (parts[1] === "check-verified" && method === "POST") {
-      const email = String(body.email || "").trim().toLowerCase();
-      try {
-        const r = await checkVerified(context.env, email);
-        return json({ ok: true, email: r.email, verified: r.verified });
-      } catch (e) {
-        return json({ error: e.message || "Could not check verification status." }, e.status || 404);
-      }
-    }
-
-
-    // FINAL: password login. The password is CHECKED (never ignored).
-    // Verified users (any role) get a persistent session at once, no
-    // OTP. Unconfirmed users get requires_verification.
     if (parts[1] === "login" && method === "POST") {
-      const identifier = String(body.identifier || body.email || body.username || "");
+      const ident = String(body.identifier || body.email || body.username || "").trim().toLowerCase();
       const password = String(body.password || "");
+      if (!ident || !password) return json({ error: "Email and password are required." }, 400);
+      const email = await resolveEmail(context.env, ident);
+      let tokens;
       try {
-        const r = await passwordLogin(context.env, context.request, { identifier, password });
-        if (r.requires_verification) return json({ ok: true, requires_verification: true, email: r.email, error: "email_not_confirmed", next: r.next });
-        return json({ ok: true, user: await pubUser(r.profile) }, 200, { setCookies: sessionCookies(r.tokens.access_token, r.tokens.refresh_token, SESSION_MAX_AGE_SEC) });
-      } catch (e) {
-        return json({ error: e.message || "Invalid username/email or password." }, e.status || 401);
+        tokens = await sbAuthTokenSignIn(context.env, email, password);
+      } catch {
+        return json({ error: "Invalid email or password." }, 401);
       }
+      const profile = await sbSelect(context.env, "profiles", { columns: "*", eq: { id: tokens.user.id }, single: true }).catch(() => null);
+      if (!profile) return json({ error: "Invalid email or password." }, 401);
+      if (profile.banned) return json({ error: "This account is banned." }, 403);
+      try { await logAction(context.env, profile.email, "Logged in"); } catch {}
+      return json({ ok: true, user: await pubUser(profile) }, 200, { setCookies: sessionCookies(tokens.access_token, tokens.refresh_token, SESSION_MAX_AGE_SEC) });
     }
 
     if (parts[1] === "logout" && method === "POST") {
@@ -191,18 +187,14 @@ async function handleRequest(context) {
       return new Response(JSON.stringify({ exportedAt: new Date().toISOString(), user: { id: user.id, email: user.email, name: user.name, role: user.role }, library: lib, likes }, null, 2), { headers: { "content-type": "application/json; charset=utf-8", "content-disposition": 'attachment; filename="ani-account-data.json"' } });
     }
     if (sub.length === 1 && sub[0] === "password" && method === "POST") {
-      // FINAL hybrid: login is password-based again, so changing the
-      // password works again. Session-authenticated; if the current
-      // password is supplied it is checked first (a wrong current
-      // password does not change anything).
-      const newPassword = String(body.new_password || body.password || "");
-      if (!newPassword || newPassword.length < 6) return json({ error: "New password must be at least 6 characters." }, 400);
-      if (body.current_password) {
-        try { await sbAuthTokenSignIn(context.env, user.email, String(body.current_password)); }
-        catch { return json({ error: "Current password is incorrect." }, 401); }
-      }
-      try { await sbAuthAdminUpdateUser(context.env, user.id, { password: newPassword }); }
-      catch { return json({ error: "Password change failed." }, 500); }
+      const current = String(body.current || "");
+      const next = String(body.next || "");
+      if (!current || next.length < 6) return json({ error: "A new password of at least 6 characters is required." }, 400);
+      try { await sbAuthTokenSignIn(context.env, user.email, current); }
+      catch { return json({ error: "Your current password is incorrect." }, 401); }
+      try { await sbAuthAdminUpdateUser(context.env, user.id, { password: next }); }
+      catch { return json({ error: "Password change failed. Please try again." }, 500); }
+      try { await logAction(context.env, user.email, "Changed password"); } catch {}
       return json({ ok: true });
     }
     // Per-device sign-out cannot revoke stateless Supabase JWTs from here,
